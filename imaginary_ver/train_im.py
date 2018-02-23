@@ -3,6 +3,7 @@ import numpy as np
 import os
 import pickle
 import ra
+import fft
 from scipy.misc import imresize
 from cgls_im import cgls
 from filterplot_im import filterplot
@@ -59,10 +60,11 @@ for image in imagelist:
     print('\r', end='')
     print(' ' * 60, end='')
     print('\rProcessing image ' + str(imagecount) + ' of ' + str(len(imagelist)) + ' (' + image + ')')
-    origin = ra.read_ra(image)
+    origin_nofft = ra.read_ra(image)
     
     ####### Normalizing, not sure if needed #######
-    origin = origin / max(np.absolute(origin).ravel())
+    origin_norm = origin_nofft / max(np.absolute(origin_nofft).ravel())
+    origin = fft.fftc(origin_norm)
     ###############################################
 
     height, width = origin.shape

@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 import os
 import pickle
+import ra
+import fft
 from gaussian2d_im import gaussian2d
 from hashkey_im import hashkey
 from math import floor
@@ -11,6 +13,13 @@ from scipy import interpolate
 from skimage.transform import resize
 from scipy.misc import imresize
 
+def downsample(arr):
+    n = np.zeros((arr.shape[0]//2, arr.shape[1]//2), dtype = complex)
+    for i in range(arr.shape[0]):
+        for j in range(arr.shape[1]):
+            if(i%2 == 0 and j%2 == 0):
+                n[i//2][j//2] = arr[i][j]
+    return n
 
 # Define parameters
 R = 2
@@ -40,45 +49,53 @@ weighting = np.diag(weighting.ravel())
 imagelist = []
 for parent, dirnames, filenames in os.walk(trainpath):
     for filename in filenames:
-        if filename.lower().endswith(('.bmp', '.dib', '.png', '.jpg', '.jpeg', '.pbm', '.pgm', '.ppm', '.tif', '.tiff')):
+        if filename.lower().endswith(('.bmp', '.dib', '.png', '.jpg', '.jpeg', '.pbm', '.pgm', '.ppm', '.tif', '.tiff', '.ra')):
             imagelist.append(os.path.join(parent, filename))
+
+
 imagecount = 1
 for image in imagelist:
     print('\r', end='')
     print(' ' * 60, end='')
     print('\rUpscaling image ' + str(imagecount) + ' of ' + str(len(imagelist)) + ' (' + image + ')')
-    origin1 = cv2.imread(image)
-
+    origin_nofft = ra.read_ra(image)
+    ####### Normalizing, not sure if needed #######
+    origin_norm = origin_nofft / max(np.absolute(origin_nofft).ravel())
+    ###############################################
+    origin_fft = fft.fftc(origin_norm)
     ### Added code ###
-    height, width, foo = origin1.shape
-    origin = imresize(origin1, (floor((height+1)/2),floor((width+1)/2)), interp='bicubic')
+    height, width= origin_norm.shape
+    origin = downsample(origin_fft)
     ##################
 
 
-    # Extract only the luminance in YCbCr
-    ycrcvorigin = cv2.cvtColor(origin, cv2.COLOR_BGR2YCrCb)
-    grayorigin = ycrcvorigin[:,:,0]
-    # Normalized to [0,1]
-    grayorigin = cv2.normalize(grayorigin.astype('float'), None, 
-        grayorigin.min()/255,
-        #0,
-        grayorigin.max()/255,
-        #1,
-        cv2.NORM_MINMAX)
+    
+
     # Upscale (bilinear interpolation)
-    heightLR, widthLR = grayorigin.shape
+    or_re = np.real(origin)
+    or_im = np.imag(origin)
+    heightLR, widthLR = or_re.shape
     heightgridLR = np.linspace(0,heightLR-1,heightLR)
     widthgridLR = np.linspace(0,widthLR-1,widthLR)
-    bilinearinterp = interpolate.interp2d(widthgridLR, heightgridLR, grayorigin, kind='linear')
+    bilinearinterp = interpolate.interp2d(widthgridLR, heightgridLR, or_re, kind='linear')
     heightgridHR = np.linspace(0,heightLR-1,heightLR*2-1)
     widthgridHR = np.linspace(0,widthLR-1,widthLR*2-1)
-    upscaledLR = bilinearinterp(widthgridHR, heightgridHR)
+    upscaledLR_re = bilinearinterp(widthgridHR, heightgridHR)
+
+    heightLR, widthLR = or_im.shape
+    heightgridLR = np.linspace(0,heightLR-1,heightLR)
+    widthgridLR = np.linspace(0,widthLR-1,widthLR)
+    bilinearinterp = interpolate.interp2d(widthgridLR, heightgridLR, or_im, kind='linear')
+    heightgridHR = np.linspace(0,heightLR-1,heightLR*2-1)
+    widthgridHR = np.linspace(0,widthLR-1,widthLR*2-1)
+    upscaledLR_im = bilinearinterp(widthgridHR, heightgridHR)
     # Calculate predictHR pixels
+    upscaledLR = np.add(upscaledLR_re, np.multiply(0+1j, upscaledLR_im, dtype = complex), dtype = complex)
+
     heightHR, widthHR = upscaledLR.shape
-    predictHR = np.zeros((heightHR-2*margin, widthHR-2*margin))
+    predictHR = np.zeros((heightHR-2*margin, widthHR-2*margin), dtype = complex)
     operationcount = 0
-    totaloperations = (heightHR
--2*margin) * (widthHR-2*margin)
+    totaloperations = (heightHR-2*margin) * (widthHR-2*margin)
     for row in range(margin, heightHR-margin):
         for col in range(margin, widthHR-margin):
             if round(operationcount*100/totaloperations) != round((operationcount+1)*100/totaloperations):
@@ -96,9 +113,10 @@ for image in imagelist:
             angle, strength, coherence = hashkey(gradientblock, Qangle, weighting)
             # Get pixel type
             pixeltype = ((row-margin) % R) * R + ((col-margin) % R)
+
             predictHR[row-margin,col-margin] = patch.dot(h[angle,strength,coherence,pixeltype])
     # Scale back to [0,255]
-    predictHR = cv2.normalize(predictHR.astype('float'), None, 0, 255, cv2.NORM_MINMAX)
+    # predictHR = cv2.normalize(predictHR.astype('float'), None, 0, 255, cv2.NORM_MINMAX)
     # fig = plt.figure()
     # ax = fig.add_subplot(1, 4, 1)
     # ax.imshow(grayorigin, cmap='gray', interpolation='none')
@@ -107,35 +125,39 @@ for image in imagelist:
     # ax = fig.add_subplot(1, 4, 3)
     # ax.imshow(predictHR, cmap='gray', interpolation='none')
     # Bilinear interpolation on CbCr field
-    result = np.zeros((heightHR, widthHR, 3))
-    y = ycrcvorigin[:,:,0]
-    bilinearinterp = interpolate.interp2d(widthgridLR, heightgridLR, y, kind='linear')
-    result[:,:,0] = bilinearinterp(widthgridHR, heightgridHR)
-    cr = ycrcvorigin[:,:,1]
-    bilinearinterp = interpolate.interp2d(widthgridLR, heightgridLR, cr, kind='linear')
-    result[:,:,1] = bilinearinterp(widthgridHR, heightgridHR)
-    cv = ycrcvorigin[:,:,2]
-    bilinearinterp = interpolate.interp2d(widthgridLR, heightgridLR, cv, kind='linear')
-    result[:,:,2] = bilinearinterp(widthgridHR, heightgridHR)
-    result[margin:heightHR-margin,margin:widthHR-margin,0] = predictHR
-    result = cv2.cvtColor(np.uint8(result), cv2.COLOR_YCrCb2RGB)
+    result = np.zeros((heightHR, widthHR), dtype = complex)
+    # y = ycrcvorigin[:,:,0]
+    # bilinearinterp = interpolate.interp2d(widthgridLR, heightgridLR, y, kind='linear')
+    # result[:,:,0] = bilinearinterp(widthgridHR, heightgridHR)
+    # cr = ycrcvorigin[:,:,1]
+    # bilinearinterp = interpolate.interp2d(widthgridLR, heightgridLR, cr, kind='linear')
+    # result[:,:,1] = bilinearinterp(widthgridHR, heightgridHR)
+    # cv = ycrcvorigin[:,:,2]
+    # bilinearinterp = interpolate.interp2d(widthgridLR, heightgridLR, cv, kind='linear')
+    # result[:,:,2] = bilinearinterp(widthgridHR, heightgridHR)
+    result[margin:heightHR-margin,margin:widthHR-margin] = predictHR
+    # result = cv2.cvtColor(np.uint8(result), cv2.COLOR_YCrCb2RGB)
     # ax = fig.add_subplot(1, 4, 4)
     # ax.imshow(result, interpolation='none')
-    cv2.imwrite('results/' + os.path.splitext(os.path.basename(image))[0] + '_result.bmp', cv2.cvtColor(result, cv2.COLOR_RGB2BGR))
+    # cv2.imwrite('results/' + os.path.splitext(os.path.basename(image))[0] + '_result.ra', result)
     imagecount += 1
 
     ### Added code ###
-    cv2.imshow('Original', origin1)
-    cv2.imshow('Original scaled down', origin)
-    cv2.imshow('Gray down', grayorigin)
-    cv2.imshow('Up Gray', upscaledLR)
-    cv2.imshow('Result', cv2.cvtColor(result, cv2.COLOR_RGB2BGR))
+    cv2.imshow('Original FFT', np.absolute(origin_fft))
+    cv2.imshow('Original', np.absolute(origin_norm))
+    cv2.imshow('Original after reversed FFT', np.absolute(fft.ifftc(origin_fft)))
+    cv2.imshow('Original FFT scaled down', np.absolute(origin))
+    # cv2.imshow('Gray down', grayorigin)
+    cv2.imshow('Upscaled simple', np.absolute(upscaledLR))
+    cv2.imshow('Upscaled simple reversed', np.absolute(fft.ifftc(upscaledLR)))
+    print (min(np.absolute(result).ravel()))
+    cv2.imshow('Result', np.absolute(result))
     cv2.waitKey(0)
     cv2.destroyAllWindows()
     ##################
 
     # Uncomment the following line to visualize the process of RAISR image upscaling
-    plt.show()
+    # plt.show()
 
 
 print('\r', end='')
