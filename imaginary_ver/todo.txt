@@ -1,0 +1,2 @@
+Nearest neighbor downscaling
+im_down = img[::n, ::n]
