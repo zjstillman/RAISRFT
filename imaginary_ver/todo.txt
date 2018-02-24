@@ -1,2 +1,7 @@
 Nearest neighbor downscaling
 im_down = img[::n, ::n]
+
+np.lstsq for replacing cgls
+use matplotlib
+plot distribution of hashkey
+9 filters, one for each location of fourier
