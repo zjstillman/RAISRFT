@@ -3,5 +3,7 @@ im_down = img[::n, ::n]
 
 np.lstsq for replacing cgls
 use matplotlib
+plt.figure(), plt.imshow(abs(im), cmap='gray'), plt.show()
+
 plot distribution of hashkey
 9 filters, one for each location of fourier

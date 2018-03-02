@@ -157,7 +157,8 @@ for pixeltype in range(0, R*R):
                     print(' ' * (50 - round((operationcount+1)*100/totaloperations/2)), end='')
                     print('|  ' + str(round((operationcount+1)*100/totaloperations)) + '%', end='')
                 operationcount += 1
-                h[angle,strength,coherence,pixeltype] = cgls(Q[angle,strength,coherence,pixeltype], V[angle,strength,coherence,pixeltype])
+                # h[angle,strength,coherence,pixeltype] = cgls(Q[angle,strength,coherence,pixeltype], V[angle,strength,coherence,pixeltype])
+                h[angle,strength,coherence,pixeltype] = np.linalg.lstsq(Q[angle,strength,coherence,pixeltype], V[angle,strength,coherence,pixeltype], rcond = -1)[0]
 
 # Write filter to file
 with open("filter", "wb") as fp:

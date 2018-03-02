@@ -14,12 +14,13 @@ from matplotlib import pyplot as plt
 from scipy import interpolate
 
 # Define parameters
-R = 2
+R = 1
 patchsize = 11
 gradientsize = 9
 Qangle = 24
 Qstrength = 3
 Qcoherence = 3
+Qlocation = 3
 trainpath = 'train'
 trainpathlong = 'train_img_slices'
 
@@ -29,10 +30,12 @@ margin = floor(maxblocksize/2)
 patchmargin = floor(patchsize/2)
 gradientmargin = floor(gradientsize/2)
 
-Q = np.zeros((Qangle, Qstrength, Qcoherence, R*R, patchsize*patchsize, patchsize*patchsize), dtype = complex)
-V = np.zeros((Qangle, Qstrength, Qcoherence, R*R, patchsize*patchsize), dtype = complex)
-h = np.zeros((Qangle, Qstrength, Qcoherence, R*R, patchsize*patchsize), dtype = complex)
-mark = np.zeros((Qstrength*Qcoherence, Qangle, R*R))
+Q = np.zeros((Qangle, Qstrength, Qcoherence, Qlocation*Qlocation, R*R, patchsize*patchsize, patchsize*patchsize), dtype = complex)
+V = np.zeros((Qangle, Qstrength, Qcoherence, Qlocation*Qlocation, R*R, patchsize*patchsize), dtype = complex)
+h = np.zeros((Qangle, Qstrength, Qcoherence, Qlocation*Qlocation, R*R, patchsize*patchsize), dtype = complex)
+mark = np.zeros((Qstrength, Qcoherence, Qangle, Qlocation*Qlocation, R*R))
+anglec = np.zeros(Qangle)
+coherencec = np.zeros(Qcoherence)
 
 # Matrix preprocessing
 # Preprocessing normalized Gaussian matrix W for hashkey calculation
@@ -63,7 +66,8 @@ for image in imagelist:
     origin_nofft = ra.read_ra(image)
     
     ####### Normalizing, not sure if needed #######
-    origin_norm = origin_nofft / max(np.absolute(origin_nofft).ravel())
+    # origin_norm = origin_nofft / max(np.absolute(origin_nofft).ravel())
+    origin_norm = origin_nofft
     origin = fft.fftc(origin_norm)
     ###############################################
 
@@ -110,6 +114,7 @@ for image in imagelist:
             gradientblock = upscaledLR[row-gradientmargin:row+gradientmargin+1, col-gradientmargin:col+gradientmargin+1]
             # Calculate hashkey
             angle, strength, coherence = hashkey(gradientblock, Qangle, weighting)
+            location = row//(height//Qlocation)*Qlocation + col//(width//Qlocation)
             # Get pixel type
             pixeltype = ((row-margin) % R) * R + ((col-margin) % R)
             # Get corresponding HR pixel
@@ -120,11 +125,19 @@ for image in imagelist:
             ATb = np.dot(patch.T, pixelHR)
             ATb = np.array(ATb).ravel()
             # Compute Q and V
-            Q[angle,strength,coherence,pixeltype] += ATA
-            V[angle,strength,coherence,pixeltype] += ATb
-            mark[coherence*3+strength, angle, pixeltype] += 1
+            Q[angle,strength,coherence,location,pixeltype] += ATA
+            V[angle,strength,coherence,location,pixeltype] += ATb
+            mark[coherence, strength, angle, location, pixeltype] += 1
+            anglec[angle] += 1
+            coherencec += 1
     imagecount += 1
-
+print()
+# print (mark)
+print('anlge:')
+print(anglec)
+print('coherencec:')
+print(coherencec)
+print()
 # Preprocessing permutation matrices P for nearly-free 8x more learning examples
 # print('\r', end='')
 # print(' ' * 60, end='')
@@ -168,20 +181,28 @@ for image in imagelist:
 # Compute filter h
 print('Computing h ...')
 operationcount = 0
-totaloperations = R * R * Qangle * Qstrength * Qcoherence
+totaloperations = R * R * Qangle * Qstrength * Qcoherence * Qlocation*Qlocation
 print(totaloperations)
 for pixeltype in range(0, R*R):
     for angle in range(0, Qangle):
         for strength in range(0, Qstrength):
             for coherence in range(0, Qcoherence):
-                print('\r' + str(operationcount) + ' '*100, end= '')
-                if round(operationcount*100/totaloperations) != round((operationcount+1)*100/totaloperations):
-                    print('\r|', end='')
-                    print('#' * round((operationcount+1)*100/totaloperations/2), end='')
-                    print(' ' * (50 - round((operationcount+1)*100/totaloperations/2)), end='')
-                    print('|  ' + str(round((operationcount+1)*100/totaloperations)) + '%', end='')
-                operationcount += 1
-                h[angle,strength,coherence,pixeltype] = cgls(Q[angle,strength,coherence,pixeltype], V[angle,strength,coherence,pixeltype])
+                for location in range(0, Qlocation*Qlocation):
+                    print('\r' + str(operationcount) + ' '*100, end= '')
+                    if round(operationcount*100/totaloperations) != round((operationcount+1)*100/totaloperations):
+                        print('\r|', end='')
+                        print('#' * round((operationcount+1)*100/totaloperations/2), end='')
+                        print(' ' * (50 - round((operationcount+1)*100/totaloperations/2)), end='')
+                        print('|  ' + str(round((operationcount+1)*100/totaloperations)) + '%', end='')
+                    operationcount += 1
+                    # h[angle,strength,coherence,pixeltype] = cgls(Q[angle,strength,coherence,pixeltype], V[angle,strength,coherence,pixeltype])
+                    # print()
+                    # print(Q[angle,strength,coherence,pixeltype].shape)
+                    # print(V[angle,strength,coherence,pixeltype].shape)
+                    # print(np.linalg.lstsq(Q[angle,strength,coherence,pixeltype], V[angle,strength,coherence,pixeltype], rcond = -1))
+                    # print('-')
+                    # print(h[angle,strength,coherence,pixeltype].shape)
+                    h[angle,strength,coherence,location,pixeltype] = np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = -1)[0]
 
 # Write filter to file
 with open("filter", "wb") as fp:

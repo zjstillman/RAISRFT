@@ -22,12 +22,13 @@ def downsample(arr):
     return n
 
 # Define parameters
-R = 2
+R = 1
 patchsize = 11
 gradientsize = 9
 Qangle = 24
 Qstrength = 3
 Qcoherence = 3
+Qlocation = 3
 trainpath = 'test'
 
 # Calculate the margin
@@ -60,7 +61,8 @@ for image in imagelist:
     print('\rUpscaling image ' + str(imagecount) + ' of ' + str(len(imagelist)) + ' (' + image + ')')
     origin_nofft = ra.read_ra(image)
     ####### Normalizing, not sure if needed #######
-    origin_norm = origin_nofft / max(np.absolute(origin_nofft).ravel())
+    # origin_norm = origin_nofft / max(np.absolute(origin_nofft).ravel())
+    origin_norm = origin_nofft
     ###############################################
     origin_fft = fft.fftc(origin_norm)
     ### Added code ###
@@ -111,10 +113,12 @@ for image in imagelist:
             gradientblock = upscaledLR[row-gradientmargin:row+gradientmargin+1, col-gradientmargin:col+gradientmargin+1]
             # Calculate hashkey
             angle, strength, coherence = hashkey(gradientblock, Qangle, weighting)
+            location = row//(heightHR//3)*Qlocation + col//(widthHR//3)
+
             # Get pixel type
             pixeltype = ((row-margin) % R) * R + ((col-margin) % R)
 
-            predictHR[row-margin,col-margin] = patch.dot(h[angle,strength,coherence,pixeltype])
+            predictHR[row-margin,col-margin] = patch.dot(h[angle,strength,coherence,location,pixeltype])
     # Scale back to [0,255]
     # predictHR = cv2.normalize(predictHR.astype('float'), None, 0, 255, cv2.NORM_MINMAX)
     # fig = plt.figure()
@@ -143,20 +147,28 @@ for image in imagelist:
     imagecount += 1
 
     ### Added code ###
-    cv2.imshow('Original FFT', np.absolute(origin_fft))
-    cv2.imshow('Original', np.absolute(origin_norm))
-    cv2.imshow('Original after reversed FFT', np.absolute(fft.ifftc(origin_fft)))
-    cv2.imshow('Original FFT scaled down', np.absolute(origin))
-    # cv2.imshow('Gray down', grayorigin)
-    cv2.imshow('Upscaled simple', np.absolute(upscaledLR))
-    cv2.imshow('Upscaled simple reversed', np.absolute(fft.ifftc(upscaledLR)))
-    print (min(np.absolute(result).ravel()))
-    cv2.imshow('Result', np.absolute(result))
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # cv2.imshow('Original FFT', np.absolute(origin_fft))
+    # cv2.imshow('Original', np.absolute(origin_norm))
+    # cv2.imshow('Original after reversed FFT', np.absolute(fft.ifftc(origin_fft)))
+    # cv2.imshow('Original FFT scaled down', np.absolute(origin))
+    # # cv2.imshow('Gray down', grayorigin)
+    # cv2.imshow('Upscaled simple', np.absolute(upscaledLR))
+    # cv2.imshow('Upscaled simple reversed', np.absolute(fft.ifftc(upscaledLR)))
+    # cv2.imshow('Result', np.absolute(result))
+    # cv2.imshow('Result image', np.absolute(fft.ifftc(result)))
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
     ##################
 
     # Uncomment the following line to visualize the process of RAISR image upscaling
+    fig = plt.figure()
+    a = fig.add_subplot(1,4,1)
+    a.imshow(abs(fft.ifftc(origin_fft)), cmap='gray')
+    a = fig.add_subplot(1,4,2)
+    a.imshow(abs(fft.ifftc(upscaledLR)), cmap='gray')
+    a = fig.add_subplot(1,4,3)
+    a.imshow(abs(fft.ifftc(result)), cmap='gray')
+    plt.show()
     # plt.show()
 
 
