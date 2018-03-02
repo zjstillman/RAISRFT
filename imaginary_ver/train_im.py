@@ -14,7 +14,7 @@ from matplotlib import pyplot as plt
 from scipy import interpolate
 
 # Define parameters
-R = 1
+R = 2
 patchsize = 11
 gradientsize = 9
 Qangle = 24
@@ -22,6 +22,7 @@ Qstrength = 3
 Qcoherence = 3
 Qlocation = 3
 trainpath = 'train'
+trainpathtemp = 'temp_train'
 trainpathlong = 'train_img_slices'
 
 # Calculate the margin
@@ -36,6 +37,7 @@ h = np.zeros((Qangle, Qstrength, Qcoherence, Qlocation*Qlocation, R*R, patchsize
 mark = np.zeros((Qstrength, Qcoherence, Qangle, Qlocation*Qlocation, R*R))
 anglec = np.zeros(Qangle)
 coherencec = np.zeros(Qcoherence)
+locationc = np.zeros(Qlocation*Qlocation)
 
 # Matrix preprocessing
 # Preprocessing normalized Gaussian matrix W for hashkey calculation
@@ -52,7 +54,7 @@ def downsample(arr):
 
 # Get image list
 imagelist = []
-for parent, dirnames, filenames in os.walk(trainpath):
+for parent, dirnames, filenames in os.walk(trainpathtemp):
     for filename in filenames:
         if filename.lower().endswith(('.bmp', '.dib', '.png', '.jpg', '.jpeg', '.pbm', '.pgm', '.ppm', '.tif', '.tiff', '.ra')):
             imagelist.append(os.path.join(parent, filename))
@@ -117,26 +119,31 @@ for image in imagelist:
             location = row//(height//Qlocation)*Qlocation + col//(width//Qlocation)
             # Get pixel type
             pixeltype = ((row-margin) % R) * R + ((col-margin) % R)
+            # angle, strength, coherence, pixeltype = 0,0,0,0
+            location = 0
             # Get corresponding HR pixel
             pixelHR = origin[row,col]
             # Compute A'A and A'b
-            ATA = np.dot(patch.T, patch)
+            ATA = np.dot(patch.T.conjugate(), patch)
             # print(ATA)
-            ATb = np.dot(patch.T, pixelHR)
+            ATb = np.dot(patch.T.conjugate(), pixelHR)
             ATb = np.array(ATb).ravel()
             # Compute Q and V
             Q[angle,strength,coherence,location,pixeltype] += ATA
             V[angle,strength,coherence,location,pixeltype] += ATb
             mark[coherence, strength, angle, location, pixeltype] += 1
             anglec[angle] += 1
-            coherencec += 1
+            coherencec[coherence] += 1
+            locationc[location] += 1
     imagecount += 1
 print()
 # print (mark)
 print('anlge:')
 print(anglec)
-print('coherencec:')
+print('coherence:')
 print(coherencec)
+print('location:')
+print(locationc)
 print()
 # Preprocessing permutation matrices P for nearly-free 8x more learning examples
 # print('\r', end='')
@@ -202,7 +209,7 @@ for pixeltype in range(0, R*R):
                     # print(np.linalg.lstsq(Q[angle,strength,coherence,pixeltype], V[angle,strength,coherence,pixeltype], rcond = -1))
                     # print('-')
                     # print(h[angle,strength,coherence,pixeltype].shape)
-                    h[angle,strength,coherence,location,pixeltype] = np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = -1)[0]
+                    h[angle,strength,coherence,location,pixeltype] = np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = 1e-3)[0]
 
 # Write filter to file
 with open("filter", "wb") as fp:

@@ -11,16 +11,16 @@ def hashkey(block, Qangle, W):
 
     # SVD calculation
     G = np.vstack((gx,gy)).T
-    GTWG = G.T.dot(W).dot(G)
+    GTWG = G.T.conjugate().dot(W).dot(G)
     w, v = np.linalg.eig(GTWG);
 
     # Make sure V and D contain only real numbers
-    nonzerow = np.count_nonzero(np.isreal(w))
-    nonzerov = np.count_nonzero(np.isreal(v))
-    if nonzerow != 0:
-        w = np.absolute(w)
-    if nonzerov != 0:
-        v = np.absolute(v)
+    # nonzerow = np.count_nonzero(np.isreal(w))
+    # nonzerov = np.count_nonzero(np.isreal(v))
+    # if nonzerow != 0:
+    #     w = np.absolute(w)
+    # if nonzerov != 0:
+    #     v = np.absolute(v)
 
     # Sort w and v according to the descending order of w
     idx = w.argsort()[::-1]
@@ -31,7 +31,8 @@ def hashkey(block, Qangle, W):
     theta = atan2(v[1,0], v[0,0])
     if theta < 0:
         theta = theta + pi
-
+    # if theta > pi/2:
+        # print(theta)
     # Calculate lamda
     lamda = w[0]
 

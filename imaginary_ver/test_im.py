@@ -22,7 +22,7 @@ def downsample(arr):
     return n
 
 # Define parameters
-R = 1
+R = 2
 patchsize = 11
 gradientsize = 9
 Qangle = 24
@@ -113,10 +113,11 @@ for image in imagelist:
             gradientblock = upscaledLR[row-gradientmargin:row+gradientmargin+1, col-gradientmargin:col+gradientmargin+1]
             # Calculate hashkey
             angle, strength, coherence = hashkey(gradientblock, Qangle, weighting)
-            location = row//(heightHR//3)*Qlocation + col//(widthHR//3)
-
+            location = row//(heightHR//Qlocation)*Qlocation + col//(widthHR//Qlocation)
             # Get pixel type
             pixeltype = ((row-margin) % R) * R + ((col-margin) % R)
+            # angle, strength, coherence, pixeltype = 0,0,0,0
+            location = 0
 
             predictHR[row-margin,col-margin] = patch.dot(h[angle,strength,coherence,location,pixeltype])
     # Scale back to [0,255]
