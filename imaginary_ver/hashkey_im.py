@@ -1,6 +1,8 @@
 import numpy as np
 from math import atan2, floor, pi
+from numba import jit
 
+@jit
 def hashkey(block, Qangle, W):
     # Calculate gradient
     gy, gx = np.gradient(block)
@@ -46,13 +48,13 @@ def hashkey(block, Qangle, W):
 
     # Quantize
     angle = floor(theta/pi*Qangle)
-    # if lamda < 0.0001:
-    #     strength = 0
-    # elif lamda > 0.001:
-    #     strength = 2
-    # else:
-    #     strength = 1
-    strength = 0
+    if lamda < 0.0001:
+        strength = 0
+    elif lamda > 0.001:
+        strength = 2
+    else:
+        strength = 1
+    # strength = 0
     if u < 0.25:
         coherence = 0
     elif u > 0.5:

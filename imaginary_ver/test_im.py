@@ -4,6 +4,7 @@ import os
 import pickle
 import ra
 import fft
+from numba import jit
 from gaussian2d_im import gaussian2d
 from hashkey_im import hashkey
 from math import floor
@@ -12,14 +13,6 @@ from scipy import interpolate
 # Added:
 from skimage.transform import resize
 from scipy.misc import imresize
-
-def downsample(arr):
-    n = np.zeros((arr.shape[0]//2, arr.shape[1]//2), dtype = complex)
-    for i in range(arr.shape[0]):
-        for j in range(arr.shape[1]):
-            if(i%2 == 0 and j%2 == 0):
-                n[i//2][j//2] = arr[i][j]
-    return n
 
 # Define parameters
 R = 2
@@ -30,6 +23,9 @@ Qstrength = 3
 Qcoherence = 3
 Qlocation = 3
 trainpath = 'test'
+trainpatha = 'test_analysis'
+full_train = 'filter'
+temp_train = 'filter_temp'
 
 # Calculate the margin
 maxblocksize = max(patchsize, gradientsize)
@@ -37,64 +33,46 @@ margin = floor(maxblocksize/2)
 patchmargin = floor(patchsize/2)
 gradientmargin = floor(gradientsize/2)
 
+
 # Read filter from file
-with open("filter", "rb") as fp:
+with open(temp_train, "rb") as fp:
     h = pickle.load(fp)
 
-# Matrix preprocessing
-# Preprocessing normalized Gaussian matrix W for hashkey calculation
-weighting = gaussian2d([gradientsize, gradientsize], 2)
-weighting = np.diag(weighting.ravel())
+@jit
+def downsample(arr):
+    n = np.zeros((arr.shape[0]//2, arr.shape[1]//2), dtype = complex)
+    for i in range(arr.shape[0]):
+        for j in range(arr.shape[1]):
+            if(i%2 == 0 and j%2 == 0):
+                n[i//2][j//2] = arr[i][j]
+    return n
 
-# Get image list
-imagelist = []
-for parent, dirnames, filenames in os.walk(trainpath):
-    for filename in filenames:
-        if filename.lower().endswith(('.bmp', '.dib', '.png', '.jpg', '.jpeg', '.pbm', '.pgm', '.ppm', '.tif', '.tiff', '.ra')):
-            imagelist.append(os.path.join(parent, filename))
-
-
-imagecount = 1
-for image in imagelist:
-    print('\r', end='')
-    print(' ' * 60, end='')
-    print('\rUpscaling image ' + str(imagecount) + ' of ' + str(len(imagelist)) + ' (' + image + ')')
-    origin_nofft = ra.read_ra(image)
-    ####### Normalizing, not sure if needed #######
-    # origin_norm = origin_nofft / max(np.absolute(origin_nofft).ravel())
-    origin_norm = origin_nofft
-    ###############################################
-    origin_fft = fft.fftc(origin_norm)
-    ### Added code ###
-    height, width= origin_norm.shape
-    origin = downsample(origin_fft)
-    ##################
-
-
-    
-
-    # Upscale (bilinear interpolation)
-    or_re = np.real(origin)
-    or_im = np.imag(origin)
+@jit
+def simple_upscale(arr):
+    or_re = np.real(arr)
+    or_im = np.imag(arr)
     heightLR, widthLR = or_re.shape
     heightgridLR = np.linspace(0,heightLR-1,heightLR)
     widthgridLR = np.linspace(0,widthLR-1,widthLR)
     bilinearinterp = interpolate.interp2d(widthgridLR, heightgridLR, or_re, kind='linear')
-    heightgridHR = np.linspace(0,heightLR-1,heightLR*2-1)
-    widthgridHR = np.linspace(0,widthLR-1,widthLR*2-1)
+    heightgridHR = np.linspace(0,heightLR,heightLR*2)
+    widthgridHR = np.linspace(0,widthLR,widthLR*2)
     upscaledLR_re = bilinearinterp(widthgridHR, heightgridHR)
 
     heightLR, widthLR = or_im.shape
     heightgridLR = np.linspace(0,heightLR-1,heightLR)
     widthgridLR = np.linspace(0,widthLR-1,widthLR)
     bilinearinterp = interpolate.interp2d(widthgridLR, heightgridLR, or_im, kind='linear')
-    heightgridHR = np.linspace(0,heightLR-1,heightLR*2-1)
-    widthgridHR = np.linspace(0,widthLR-1,widthLR*2-1)
+    heightgridHR = np.linspace(0,heightLR,heightLR*2)
+    widthgridHR = np.linspace(0,widthLR,widthLR*2)
     upscaledLR_im = bilinearinterp(widthgridHR, heightgridHR)
     # Calculate predictHR pixels
     upscaledLR = np.add(upscaledLR_re, np.multiply(0+1j, upscaledLR_im, dtype = complex), dtype = complex)
+    return upscaledLR
 
-    heightHR, widthHR = upscaledLR.shape
+@jit
+def apply_filter(arr):
+    heightHR, widthHR = arr.shape
     predictHR = np.zeros((heightHR-2*margin, widthHR-2*margin), dtype = complex)
     operationcount = 0
     totaloperations = (heightHR-2*margin) * (widthHR-2*margin)
@@ -107,19 +85,63 @@ for image in imagelist:
                 print('|  ' + str(round((operationcount+1)*100/totaloperations)) + '%', end='')
             operationcount += 1
             # Get patch
-            patch = upscaledLR[row-patchmargin:row+patchmargin+1, col-patchmargin:col+patchmargin+1]
+            patch = arr[row-patchmargin:row+patchmargin+1, col-patchmargin:col+patchmargin+1]
             patch = patch.ravel()
             # Get gradient block
-            gradientblock = upscaledLR[row-gradientmargin:row+gradientmargin+1, col-gradientmargin:col+gradientmargin+1]
+            gradientblock = arr[row-gradientmargin:row+gradientmargin+1, col-gradientmargin:col+gradientmargin+1]
             # Calculate hashkey
             angle, strength, coherence = hashkey(gradientblock, Qangle, weighting)
             location = row//(heightHR//Qlocation)*Qlocation + col//(widthHR//Qlocation)
             # Get pixel type
             pixeltype = ((row-margin) % R) * R + ((col-margin) % R)
-            # angle, strength, coherence, pixeltype = 0,0,0,0
-            location = 0
+            # location, angle, strength, coherence, pixeltype = 0,0,0,0,0
 
             predictHR[row-margin,col-margin] = patch.dot(h[angle,strength,coherence,location,pixeltype])
+    return predictHR
+
+
+
+# Matrix preprocessing
+# Preprocessing normalized Gaussian matrix W for hashkey calculation
+weighting = gaussian2d([gradientsize, gradientsize], 2)
+weighting = np.diag(weighting.ravel())
+
+# Get image list
+imagelist = []
+for parent, dirnames, filenames in os.walk(trainpatha):
+    for filename in filenames:
+        if filename.lower().endswith(('.bmp', '.dib', '.png', '.jpg', '.jpeg', '.pbm', '.pgm', '.ppm', '.tif', '.tiff', '.ra')):
+            imagelist.append(os.path.join(parent, filename))
+
+
+imagecount = 1
+for image in imagelist:
+    print('\r', end='')
+    print(' ' * 60, end='')
+    print('\rUpscaling image ' + str(imagecount) + ' of ' + str(len(imagelist)) + ' (' + image + ')')
+    origin_nofft = ra.read_ra(image)
+    ####### Normalizing, not sure if needed #######
+    origin_norm = origin_nofft / max(np.absolute(origin_nofft).ravel())
+    # origin_norm = origin_nofft
+    ###############################################
+    origin_fft = fft.fftc(origin_norm)
+    ### Added code ###
+    height, width= origin_norm.shape
+    origin = downsample(origin_fft)
+    ##################
+    # print ()
+    # print (origin_fft.shape)
+    # print (abs(fft.ifftc(origin_fft)).shape)
+    # print (origin.shape)
+    # print ()
+
+    
+
+    # Upscale (bilinear interpolation)
+    upscaledLR = simple_upscale(origin)
+
+    predictHR = apply_filter(upscaledLR)
+    heightHR, widthHR = upscaledLR.shape
     # Scale back to [0,255]
     # predictHR = cv2.normalize(predictHR.astype('float'), None, 0, 255, cv2.NORM_MINMAX)
     # fig = plt.figure()
@@ -146,6 +168,21 @@ for image in imagelist:
     # ax.imshow(result, interpolation='none')
     # cv2.imwrite('results/' + os.path.splitext(os.path.basename(image))[0] + '_result.ra', result)
     imagecount += 1
+    MSE = 0
+    o = abs(fft.ifftc(origin_fft))
+    r = abs(fft.ifftc(result))
+    print()
+    # print(o.shape)
+    # print(r.shape)
+    # print(margin)
+    for a in range(r.shape[0]):
+        for b in range(r.shape[1]):
+            # print('a: + ' + str(a) + ' b: ' + str(b) + ' o: ' + str(o[a][b]) + ' r: ' + str(r[a][b]))
+            MSE += (o[a][b] - r[a][b]) ** 2
+    f = open('results/TEMP_Error_' + os.path.splitext(os.path.basename(image))[0] + '.txt','w')
+    f.write('MSE: ' + str(MSE))
+    print('MSE: ' + str(MSE))
+    f.close()
 
     ### Added code ###
     # cv2.imshow('Original FFT', np.absolute(origin_fft))

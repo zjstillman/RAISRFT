@@ -4,6 +4,7 @@ import os
 import pickle
 import ra
 import fft
+from numba import jit
 from scipy.misc import imresize
 from cgls_im import cgls
 from filterplot_im import filterplot
@@ -23,7 +24,10 @@ Qcoherence = 3
 Qlocation = 3
 trainpath = 'train'
 trainpathtemp = 'temp_train'
+trainpatha = 'train_analysis'
 trainpathlong = 'train_img_slices'
+full_train = 'filter'
+temp_train = 'filter_temp'
 
 # Calculate the margin
 maxblocksize = max(patchsize, gradientsize)
@@ -38,12 +42,14 @@ mark = np.zeros((Qstrength, Qcoherence, Qangle, Qlocation*Qlocation, R*R))
 anglec = np.zeros(Qangle)
 coherencec = np.zeros(Qcoherence)
 locationc = np.zeros(Qlocation*Qlocation)
+strengthc = np.zeros(Qstrength)
 
 # Matrix preprocessing
 # Preprocessing normalized Gaussian matrix W for hashkey calculation
 weighting = gaussian2d([gradientsize, gradientsize], 2)
 weighting = np.diag(weighting.ravel())
 
+@jit
 def downsample(arr):
     n = np.zeros((arr.shape[0]//2, arr.shape[1]//2), dtype = complex)
     for i in range(arr.shape[0]):
@@ -52,24 +58,13 @@ def downsample(arr):
                 n[i//2][j//2] = arr[i][j]
     return n
 
-# Get image list
-imagelist = []
-for parent, dirnames, filenames in os.walk(trainpathtemp):
-    for filename in filenames:
-        if filename.lower().endswith(('.bmp', '.dib', '.png', '.jpg', '.jpeg', '.pbm', '.pgm', '.ppm', '.tif', '.tiff', '.ra')):
-            imagelist.append(os.path.join(parent, filename))
-
-# Compute Q and V
-imagecount = 1
-for image in imagelist:
-    print('\r', end='')
-    print(' ' * 60, end='')
-    print('\rProcessing image ' + str(imagecount) + ' of ' + str(len(imagelist)) + ' (' + image + ')')
+@jit
+def process_image(image, Q, V, mark, a, c, l, s):
     origin_nofft = ra.read_ra(image)
     
     ####### Normalizing, not sure if needed #######
-    # origin_norm = origin_nofft / max(np.absolute(origin_nofft).ravel())
-    origin_norm = origin_nofft
+    origin_norm = origin_nofft / max(np.absolute(origin_nofft).ravel())
+    # origin_norm = origin_nofft
     origin = fft.fftc(origin_norm)
     ###############################################
 
@@ -82,16 +77,16 @@ for image in imagelist:
     heightgrid = np.linspace(0, height-1, height)
     widthgrid = np.linspace(0, width-1, width)
     bilinearinterp = interpolate.interp2d(widthgrid, heightgrid, LR_re, kind='linear')
-    heightgrid = np.linspace(0, height-1, height*2-1)
-    widthgrid = np.linspace(0, width-1, width*2-1)
+    heightgrid = np.linspace(0, height, height*2)
+    widthgrid = np.linspace(0, width, width*2)
     upscaledLR_re = bilinearinterp(widthgrid, heightgrid)
 
     height, width = LR_im.shape
     heightgrid = np.linspace(0, height-1, height)
     widthgrid = np.linspace(0, width-1, width)
     bilinearinterp = interpolate.interp2d(widthgrid, heightgrid, LR_im, kind='linear')
-    heightgrid = np.linspace(0, height-1, height*2-1)
-    widthgrid = np.linspace(0, width-1, width*2-1)
+    heightgrid = np.linspace(0, height, height*2)
+    widthgrid = np.linspace(0, width, width*2)
     upscaledLR_im = bilinearinterp(widthgrid, heightgrid)
 
     upscaledLR = np.add(upscaledLR_re, np.multiply(0+1j, upscaledLR_im, dtype = complex), dtype = complex)
@@ -119,8 +114,7 @@ for image in imagelist:
             location = row//(height//Qlocation)*Qlocation + col//(width//Qlocation)
             # Get pixel type
             pixeltype = ((row-margin) % R) * R + ((col-margin) % R)
-            # angle, strength, coherence, pixeltype = 0,0,0,0
-            location = 0
+            # location, angle, strength, coherence, pixeltype = 0,0,0,0,0
             # Get corresponding HR pixel
             pixelHR = origin[row,col]
             # Compute A'A and A'b
@@ -132,9 +126,25 @@ for image in imagelist:
             Q[angle,strength,coherence,location,pixeltype] += ATA
             V[angle,strength,coherence,location,pixeltype] += ATb
             mark[coherence, strength, angle, location, pixeltype] += 1
-            anglec[angle] += 1
-            coherencec[coherence] += 1
-            locationc[location] += 1
+            a[angle] += 1
+            c[coherence] += 1
+            l[location] += 1
+            s[strength] += 1
+
+# Get image list
+imagelist = []
+for parent, dirnames, filenames in os.walk(trainpathtemp):
+    for filename in filenames:
+        if filename.lower().endswith(('.bmp', '.dib', '.png', '.jpg', '.jpeg', '.pbm', '.pgm', '.ppm', '.tif', '.tiff', '.ra')):
+            imagelist.append(os.path.join(parent, filename))
+
+# Compute Q and V
+imagecount = 1
+for image in imagelist:
+    print('\r', end='')
+    print(' ' * 60, end='')
+    print('\rProcessing image ' + str(imagecount) + ' of ' + str(len(imagelist)) + ' (' + image + ')')
+    process_image(image, Q, V, mark, anglec, coherencec, locationc, strengthc)
     imagecount += 1
 print()
 # print (mark)
@@ -144,6 +154,8 @@ print('coherence:')
 print(coherencec)
 print('location:')
 print(locationc)
+print('strength:')
+print(strengthc)
 print()
 # Preprocessing permutation matrices P for nearly-free 8x more learning examples
 # print('\r', end='')
@@ -186,6 +198,10 @@ print()
 # V += Vextended
 
 # Compute filter h
+@jit
+def compute_filter_pixel(anlge, strength, coherence, location, pixeltype, Q, V):
+    return np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = 1e-3)[0]
+
 print('Computing h ...')
 operationcount = 0
 totaloperations = R * R * Qangle * Qstrength * Qcoherence * Qlocation*Qlocation
@@ -209,10 +225,10 @@ for pixeltype in range(0, R*R):
                     # print(np.linalg.lstsq(Q[angle,strength,coherence,pixeltype], V[angle,strength,coherence,pixeltype], rcond = -1))
                     # print('-')
                     # print(h[angle,strength,coherence,pixeltype].shape)
-                    h[angle,strength,coherence,location,pixeltype] = np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = 1e-3)[0]
+                    h[angle,strength,coherence,location,pixeltype] = compute_filter_pixel(angle, strength, coherence, location, pixeltype, Q, V)
 
 # Write filter to file
-with open("filter", "wb") as fp:
+with open(temp_train, "wb") as fp:
     pickle.dump(h, fp)
 
 # Uncomment the following line to show the learned filters
