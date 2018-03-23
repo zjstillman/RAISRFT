@@ -97,7 +97,10 @@ def apply_filter(arr):
             location = row//(heightHR//Qlocation)*Qlocation + col//(widthHR//Qlocation)
             # Get pixel type
             pixeltype = ((row-margin) % R) * R + ((col-margin) % R)
-            # location, angle, strength, coherence = 0,0,0,0
+            # location = 0
+            angle = 0
+            strength = 0
+            coherence = 0
 
             predictHR[row-margin,col-margin] = patch.dot(h[angle,strength,coherence,location,pixeltype])
     return predictHR
@@ -207,7 +210,7 @@ for image in imagelist:
     # plt.show()
     # plt.show()
 
-f = open('results/TEMP_Error_FULL_1.txt','w')
+f = open('results/LOC_Error_FULL_1.txt','w')
 f.write('MSE: ' + str(MSE))
 print('MSE: ' + str(MSE))
 f.close()

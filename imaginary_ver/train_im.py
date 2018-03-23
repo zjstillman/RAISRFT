@@ -200,7 +200,10 @@ for image in imagelist:
             location = row//(height//Qlocation)*Qlocation + col//(width//Qlocation)
             # Get pixel type
             pixeltype = ((row-margin) % R) * R + ((col-margin) % R)
-            # location, angle, strength, coherence = 0,0,0,0
+            #location = 0
+            angle = 0
+            strength = 0
+            coherence = 0
             # Get corresponding HR pixel
             pixelHR = origin[row,col]
             # Compute A'A and A'b
