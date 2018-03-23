@@ -26,8 +26,10 @@ trainpath = 'train'
 trainpathtemp = 'temp_train'
 trainpatha = 'train_analysis'
 trainpathlong = 'train_img_slices'
+trainpath2 = 'train_full_2'
 full_train = 'filter'
 temp_train = 'filter_temp'
+full_2_train = 'filter2'
 
 # Calculate the margin
 maxblocksize = max(patchsize, gradientsize)
@@ -133,7 +135,7 @@ def process_image(image, Q, V, mark, a, c, l, s):
 
 # Get image list
 imagelist = []
-for parent, dirnames, filenames in os.walk(trainpathtemp):
+for parent, dirnames, filenames in os.walk(trainpath2):
     for filename in filenames:
         if filename.lower().endswith(('.bmp', '.dib', '.png', '.jpg', '.jpeg', '.pbm', '.pgm', '.ppm', '.tif', '.tiff', '.ra')):
             imagelist.append(os.path.join(parent, filename))
@@ -198,7 +200,7 @@ for image in imagelist:
             location = row//(height//Qlocation)*Qlocation + col//(width//Qlocation)
             # Get pixel type
             pixeltype = ((row-margin) % R) * R + ((col-margin) % R)
-            # location, angle, strength, coherence, pixeltype = 0,0,0,0,0
+            # location, angle, strength, coherence = 0,0,0,0
             # Get corresponding HR pixel
             pixelHR = origin[row,col]
             # Compute A'A and A'b
@@ -297,7 +299,7 @@ for pixeltype in range(0, R*R):
                     h[angle,strength,coherence,location,pixeltype] = np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = 1e-3)[0]
 
 # Write filter to file
-with open(temp_train, "wb") as fp:
+with open(full_2_train, "wb") as fp:
     pickle.dump(h, fp)
 
 # Uncomment the following line to show the learned filters

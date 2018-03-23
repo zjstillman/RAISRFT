@@ -24,8 +24,11 @@ Qcoherence = 3
 Qlocation = 3
 trainpath = 'test'
 trainpatha = 'test_analysis'
+trainpath1 = 'test_full_1'
 full_train = 'filter'
 temp_train = 'filter_temp'
+full_1_train = 'filter1'
+
 
 # Calculate the margin
 maxblocksize = max(patchsize, gradientsize)
@@ -35,7 +38,7 @@ gradientmargin = floor(gradientsize/2)
 
 
 # Read filter from file
-with open(full_train, "rb") as fp:
+with open(full_1_train, "rb") as fp:
     h = pickle.load(fp)
 
 @jit
@@ -94,7 +97,7 @@ def apply_filter(arr):
             location = row//(heightHR//Qlocation)*Qlocation + col//(widthHR//Qlocation)
             # Get pixel type
             pixeltype = ((row-margin) % R) * R + ((col-margin) % R)
-            # location, angle, strength, coherence, pixeltype = 0,0,0,0,0
+            # location, angle, strength, coherence = 0,0,0,0
 
             predictHR[row-margin,col-margin] = patch.dot(h[angle,strength,coherence,location,pixeltype])
     return predictHR
@@ -108,12 +111,12 @@ weighting = np.diag(weighting.ravel())
 
 # Get image list
 imagelist = []
-for parent, dirnames, filenames in os.walk(trainpatha):
+for parent, dirnames, filenames in os.walk(trainpath1):
     for filename in filenames:
         if filename.lower().endswith(('.bmp', '.dib', '.png', '.jpg', '.jpeg', '.pbm', '.pgm', '.ppm', '.tif', '.tiff', '.ra')):
             imagelist.append(os.path.join(parent, filename))
 
-
+MSE = 0
 imagecount = 1
 for image in imagelist:
     print('\r', end='')
@@ -168,7 +171,6 @@ for image in imagelist:
     # ax.imshow(result, interpolation='none')
     # cv2.imwrite('results/' + os.path.splitext(os.path.basename(image))[0] + '_result.ra', result)
     imagecount += 1
-    MSE = 0
     o = abs(fft.ifftc(origin_fft))
     r = abs(fft.ifftc(result))
     print()
@@ -179,10 +181,6 @@ for image in imagelist:
         for b in range(r.shape[1]):
             # print('a: + ' + str(a) + ' b: ' + str(b) + ' o: ' + str(o[a][b]) + ' r: ' + str(r[a][b]))
             MSE += (o[a][b] - r[a][b]) ** 2
-    f = open('results/TEMP_Error_' + os.path.splitext(os.path.basename(image))[0] + '.txt','w')
-    f.write('MSE: ' + str(MSE))
-    print('MSE: ' + str(MSE))
-    f.close()
 
     ### Added code ###
     # cv2.imshow('Original FFT', np.absolute(origin_fft))
@@ -199,16 +197,20 @@ for image in imagelist:
     ##################
 
     # Uncomment the following line to visualize the process of RAISR image upscaling
-    fig = plt.figure()
-    a = fig.add_subplot(1,4,1)
-    a.imshow(abs(fft.ifftc(origin_fft)), cmap='gray')
-    a = fig.add_subplot(1,4,2)
-    a.imshow(abs(fft.ifftc(upscaledLR)), cmap='gray')
-    a = fig.add_subplot(1,4,3)
-    a.imshow(abs(fft.ifftc(result)), cmap='gray')
-    plt.show()
+    # fig = plt.figure()
+    # a = fig.add_subplot(1,4,1)
+    # a.imshow(abs(fft.ifftc(origin_fft)), cmap='gray')
+    # a = fig.add_subplot(1,4,2)
+    # a.imshow(abs(fft.ifftc(upscaledLR)), cmap='gray')
+    # a = fig.add_subplot(1,4,3)
+    # a.imshow(abs(fft.ifftc(result)), cmap='gray')
+    # plt.show()
     # plt.show()
 
+f = open('results/TEMP_Error_FULL_1.txt','w')
+f.write('MSE: ' + str(MSE))
+print('MSE: ' + str(MSE))
+f.close()
 
 print('\r', end='')
 print(' ' * 60, end='')
