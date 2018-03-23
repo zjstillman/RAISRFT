@@ -144,7 +144,76 @@ for image in imagelist:
     print('\r', end='')
     print(' ' * 60, end='')
     print('\rProcessing image ' + str(imagecount) + ' of ' + str(len(imagelist)) + ' (' + image + ')')
-    process_image(image, Q, V, mark, anglec, coherencec, locationc, strengthc)
+    origin_nofft = ra.read_ra(image)
+    
+    ####### Normalizing, not sure if needed #######
+    origin_norm = origin_nofft / max(np.absolute(origin_nofft).ravel())
+    # origin_norm = origin_nofft
+    origin = fft.fftc(origin_norm)
+    ###############################################
+
+    height, width = origin.shape
+    LR = downsample(origin)
+    # Upscale (bilinear interpolation)
+    LR_re = np.real(LR)
+    LR_im = np.imag(LR)
+    height, width = LR_re.shape
+    heightgrid = np.linspace(0, height-1, height)
+    widthgrid = np.linspace(0, width-1, width)
+    bilinearinterp = interpolate.interp2d(widthgrid, heightgrid, LR_re, kind='linear')
+    heightgrid = np.linspace(0, height, height*2)
+    widthgrid = np.linspace(0, width, width*2)
+    upscaledLR_re = bilinearinterp(widthgrid, heightgrid)
+
+    height, width = LR_im.shape
+    heightgrid = np.linspace(0, height-1, height)
+    widthgrid = np.linspace(0, width-1, width)
+    bilinearinterp = interpolate.interp2d(widthgrid, heightgrid, LR_im, kind='linear')
+    heightgrid = np.linspace(0, height, height*2)
+    widthgrid = np.linspace(0, width, width*2)
+    upscaledLR_im = bilinearinterp(widthgrid, heightgrid)
+
+    upscaledLR = np.add(upscaledLR_re, np.multiply(0+1j, upscaledLR_im, dtype = complex), dtype = complex)
+    # print(upscaledLR)
+    # Calculate A'A, A'b and push them into Q, V
+    height, width = upscaledLR.shape
+    operationcount = 0
+    totaloperations = (height-2*margin) * (width-2*margin)
+    for row in range(margin, height-margin):
+        for col in range(margin, width-margin):
+            if round(operationcount*100/totaloperations) != round((operationcount+1)*100/totaloperations):
+                print('\r|', end='')
+                print('#' * round((operationcount+1)*100/totaloperations/2), end='')
+                print(' ' * (50 - round((operationcount+1)*100/totaloperations/2)), end='')
+                print('|  ' + str(round((operationcount+1)*100/totaloperations)) + '%', end='')
+            operationcount += 1
+            # Get patch
+            patch = upscaledLR[row-patchmargin:row+patchmargin+1, col-patchmargin:col+patchmargin+1]
+            # print(patch)
+            patch = np.matrix(patch.ravel())
+            # Get gradient block
+            gradientblock = upscaledLR[row-gradientmargin:row+gradientmargin+1, col-gradientmargin:col+gradientmargin+1]
+            # Calculate hashkey
+            angle, strength, coherence = hashkey(gradientblock, Qangle, weighting)
+            location = row//(height//Qlocation)*Qlocation + col//(width//Qlocation)
+            # Get pixel type
+            pixeltype = ((row-margin) % R) * R + ((col-margin) % R)
+            # location, angle, strength, coherence, pixeltype = 0,0,0,0,0
+            # Get corresponding HR pixel
+            pixelHR = origin[row,col]
+            # Compute A'A and A'b
+            ATA = np.dot(patch.T.conjugate(), patch)
+            # print(ATA)
+            ATb = np.dot(patch.T.conjugate(), pixelHR)
+            ATb = np.array(ATb).ravel()
+            # Compute Q and V
+            Q[angle,strength,coherence,location,pixeltype] += ATA
+            V[angle,strength,coherence,location,pixeltype] += ATb
+            mark[coherence, strength, angle, location, pixeltype] += 1
+            anglec[angle] += 1
+            coherencec[coherence] += 1
+            locationc[location] += 1
+            strengthc[strength] += 1
     imagecount += 1
 print()
 # print (mark)
@@ -225,7 +294,7 @@ for pixeltype in range(0, R*R):
                     # print(np.linalg.lstsq(Q[angle,strength,coherence,pixeltype], V[angle,strength,coherence,pixeltype], rcond = -1))
                     # print('-')
                     # print(h[angle,strength,coherence,pixeltype].shape)
-                    h[angle,strength,coherence,location,pixeltype] = compute_filter_pixel(angle, strength, coherence, location, pixeltype, Q, V)
+                    h[angle,strength,coherence,location,pixeltype] = np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = 1e-3)[0]
 
 # Write filter to file
 with open(temp_train, "wb") as fp:

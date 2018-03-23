@@ -35,7 +35,7 @@ gradientmargin = floor(gradientsize/2)
 
 
 # Read filter from file
-with open(temp_train, "rb") as fp:
+with open(full_train, "rb") as fp:
     h = pickle.load(fp)
 
 @jit

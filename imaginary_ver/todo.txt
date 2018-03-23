@@ -10,3 +10,10 @@ numba, make code faster
 strength with normalization
 calculate distance between test and result
 structure tensor for computing angles
+
+larger sets
+train on differrent 3d object
+pixel type with other hash
+spread out set to train
+Try without normalization
+Try dividing by mean for each pach filter
