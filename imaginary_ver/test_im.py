@@ -38,7 +38,7 @@ gradientmargin = floor(gradientsize/2)
 
 
 # Read filter from file
-with open(full_1_train, "rb") as fp:
+with open(full_train, "rb") as fp:
     h = pickle.load(fp)
 
 @jit
@@ -114,7 +114,7 @@ weighting = np.diag(weighting.ravel())
 
 # Get image list
 imagelist = []
-for parent, dirnames, filenames in os.walk(trainpath1):
+for parent, dirnames, filenames in os.walk(trainpatha):
     for filename in filenames:
         if filename.lower().endswith(('.bmp', '.dib', '.png', '.jpg', '.jpeg', '.pbm', '.pgm', '.ppm', '.tif', '.tiff', '.ra')):
             imagelist.append(os.path.join(parent, filename))
@@ -200,17 +200,17 @@ for image in imagelist:
     ##################
 
     # Uncomment the following line to visualize the process of RAISR image upscaling
-    # fig = plt.figure()
-    # a = fig.add_subplot(1,4,1)
-    # a.imshow(abs(fft.ifftc(origin_fft)), cmap='gray')
-    # a = fig.add_subplot(1,4,2)
-    # a.imshow(abs(fft.ifftc(upscaledLR)), cmap='gray')
-    # a = fig.add_subplot(1,4,3)
-    # a.imshow(abs(fft.ifftc(result)), cmap='gray')
-    # plt.show()
-    # plt.show()
+    fig = plt.figure()
+    a = fig.add_subplot(1,4,1)
+    a.imshow(abs(fft.ifftc(origin_fft)), cmap='gray')
+    a = fig.add_subplot(1,4,2)
+    a.imshow(abs(fft.ifftc(upscaledLR)), cmap='gray')
+    a = fig.add_subplot(1,4,3)
+    a.imshow(abs(fft.ifftc(result)), cmap='gray')
+    plt.show()
+    plt.show()
 
-f = open('results/LOC_Error_FULL_1.txt','w')
+f = open('results/TEMP_Error_FULL_1.txt','w')
 f.write('MSE: ' + str(MSE))
 print('MSE: ' + str(MSE))
 f.close()

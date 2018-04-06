@@ -17,3 +17,9 @@ pixel type with other hash
 spread out set to train
 Try without normalization
 Try dividing by mean for each pach filter
+
+Try just cropping fourier
+crop and zero padding for regular images/knee images crop a square shape (2/3) and a circle masking (again 2/3)
+test for knee images
+upscalling by 1.5 (knees)
+Bicubic upscalling

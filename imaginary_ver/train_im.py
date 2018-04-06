@@ -135,7 +135,7 @@ def process_image(image, Q, V, mark, a, c, l, s):
 
 # Get image list
 imagelist = []
-for parent, dirnames, filenames in os.walk(trainpath2):
+for parent, dirnames, filenames in os.walk(trainpath):
     for filename in filenames:
         if filename.lower().endswith(('.bmp', '.dib', '.png', '.jpg', '.jpeg', '.pbm', '.pgm', '.ppm', '.tif', '.tiff', '.ra')):
             imagelist.append(os.path.join(parent, filename))
@@ -302,7 +302,7 @@ for pixeltype in range(0, R*R):
                     h[angle,strength,coherence,location,pixeltype] = np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = 1e-3)[0]
 
 # Write filter to file
-with open(full_2_train, "wb") as fp:
+with open(temp_train, "wb") as fp:
     pickle.dump(h, fp)
 
 # Uncomment the following line to show the learned filters
