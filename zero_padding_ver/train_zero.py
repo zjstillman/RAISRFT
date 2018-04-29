@@ -24,9 +24,11 @@ Qcoherence = 3
 Qlocation = 3
 trainpath = 'train'
 trainlarge = 'train_large'
+testone = 'onetest'
 trainfull2path = 'train_full_2'
 basictrain = 'filter'
 full2train = 'filterfull2'
+onetrain = 'onetrain'
 
 # Calculate the margin
 maxblocksize = max(patchsize, gradientsize)
@@ -51,8 +53,8 @@ weighting = np.diag(weighting.ravel())
 # @jit
 def zeropad(arr):
     n = np.zeros(arr.shape, dtype = complex)
-    for i in range(arr.shape[0]//6, 5*arr.shape[0]//6):
-        for j in range(arr.shape[1]//6, 5*arr.shape[1]//6):
+    for i in range(arr.shape[0]//4, 3*arr.shape[0]//4):
+        for j in range(arr.shape[1]//4, 3*arr.shape[1]//4):
             n[i][j] = arr[i][j]
     return n
 
@@ -88,11 +90,11 @@ for image in imagelist:
                 print('|  ' + str(round((operationcount+1)*100/totaloperations)) + '%', end='')
             operationcount += 1
             # Get patch
-            patch = upscaledLR[row-patchmargin:row+patchmargin+1, col-patchmargin:col+patchmargin+1]
+            patch = upscaledLR[row-patchmargin:row+patchmargin+1, col-patchmargin:col+patchmargin+1].copy()
             # print(patch)
             patch = np.matrix(patch.ravel())
             # Get gradient block
-            gradientblock = upscaledLR[row-gradientmargin:row+gradientmargin+1, col-gradientmargin:col+gradientmargin+1]
+            gradientblock = upscaledLR[row-gradientmargin:row+gradientmargin+1, col-gradientmargin:col+gradientmargin+1].copy()
             # Calculate hashkey
             angle, strength, coherence = hashkey(gradientblock, Qangle, weighting)
             location = row//(height//Qlocation)*Qlocation + col//(width//Qlocation)
@@ -174,7 +176,7 @@ print()
 # Compute filter h
 # @jit
 def compute_filter_pixel(anlge, strength, coherence, location, pixeltype, Q, V):
-    return np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = 1e-3)[0]
+    return np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = 1e-7)[0]
 
 print('Computing h ...')
 operationcount = 0
@@ -192,8 +194,14 @@ for pixeltype in range(0, R*R):
                         print(' ' * (50 - round((operationcount+1)*100/totaloperations/2)), end='')
                         print('|  ' + str(round((operationcount+1)*100/totaloperations)) + '%', end='')
                     operationcount += 1
-                    h[angle,strength,coherence,location,pixeltype] = np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = 1e-3)[0]
+                    temp = np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = 1e-7)[0]
+                    
+                    #### Normalizing Filter ####
+                    if sum(temp != 0):
+                        temp = temp/sum(temp)  
+                    ############################
 
+                    h[angle,strength,coherence,location,pixeltype] = temp
 # Write filter to file
 with open(full2train, "wb") as fp:
     pickle.dump(h, fp)

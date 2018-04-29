@@ -24,8 +24,11 @@ Qcoherence = 3
 Qlocation = 3
 testpath = 'test'
 test_full_1 = 'test_full_1'
+testone = 'onetest'
 basictrain = 'filter'
 full2train = 'filterfull2'
+onetrain = 'onetrain'
+
 
 
 # Calculate the margin
@@ -34,6 +37,10 @@ margin = floor(maxblocksize/2)
 patchmargin = floor(patchsize/2)
 gradientmargin = floor(gradientsize/2)
 
+anglec = np.zeros(Qangle)
+coherencec = np.zeros(Qcoherence)
+locationc = np.zeros(Qlocation*Qlocation)
+strengthc = np.zeros(Qstrength)
 
 # Read filter from file
 with open(full2train, "rb") as fp:
@@ -42,8 +49,8 @@ with open(full2train, "rb") as fp:
 # @jit
 def zeropad(arr):
     n = np.zeros(arr.shape, dtype = complex)
-    for i in range(arr.shape[0]//6, 5*arr.shape[0]//6):
-        for j in range(arr.shape[1]//6, 5*arr.shape[1]//6):
+    for i in range(arr.shape[0]//4, 3*arr.shape[0]//4):
+        for j in range(arr.shape[1]//4, 3*arr.shape[1]//4):
             n[i][j] = arr[i][j]
     return n
 
@@ -62,10 +69,10 @@ def apply_filter(arr):
                 print('|  ' + str(round((operationcount+1)*100/totaloperations)) + '%', end='')
             operationcount += 1
             # Get patch
-            patch = arr[row-patchmargin:row+patchmargin+1, col-patchmargin:col+patchmargin+1]
+            patch = arr[row-patchmargin:row+patchmargin+1, col-patchmargin:col+patchmargin+1].copy()
             patch = patch.ravel()
             # Get gradient block
-            gradientblock = arr[row-gradientmargin:row+gradientmargin+1, col-gradientmargin:col+gradientmargin+1]
+            gradientblock = arr[row-gradientmargin:row+gradientmargin+1, col-gradientmargin:col+gradientmargin+1].copy()
             # Calculate hashkey
             angle, strength, coherence = hashkey(gradientblock, Qangle, weighting)
             location = row//(heightHR//Qlocation)*Qlocation + col//(widthHR//Qlocation)
@@ -76,7 +83,10 @@ def apply_filter(arr):
             # angle = 0
             # strength = 0
             # coherence = 0
-
+            anglec[angle] += 1
+            coherencec[coherence] += 1
+            locationc[location] += 1
+            strengthc[strength] += 1
             predictHR[row-margin,col-margin] = patch.dot(h[angle,strength,coherence,location,pixeltype])
     return predictHR
 
@@ -89,7 +99,7 @@ weighting = np.diag(weighting.ravel())
 
 # Get image list
 imagelist = []
-for parent, dirnames, filenames in os.walk(test_full_1):
+for parent, dirnames, filenames in os.walk(testpath):
     for filename in filenames:
         if filename.lower().endswith(('.bmp', '.dib', '.png', '.jpg', '.jpeg', '.pbm', '.pgm', '.ppm', '.tif', '.tiff', '.ra')):
             imagelist.append(os.path.join(parent, filename))
@@ -108,7 +118,16 @@ for image in imagelist:
 
     predictHR = apply_filter(upscaledLR)
     heightHR, widthHR = upscaledLR.shape
-
+    print()
+    print('anlge:')
+    print(anglec)
+    print('coherence:')
+    print(coherencec)
+    print('location:')
+    print(locationc)
+    print('strength:')
+    print(strengthc)
+    print()
     ############### COLORING STUFF ###############
     
     # Scale back to [0,255]
@@ -140,29 +159,36 @@ for image in imagelist:
     ##############################################
 
     imagecount += 1
-    o = abs(origin)
-    r = abs(result)
+    o = origin
+    s = upscaledLR
+    r = result
     print()
+    MSE = 0
+    MSE2 = 0
     for a in range(r.shape[0]):
         for b in range(r.shape[1]):
-            MSE += (o[a][b] - r[a][b]) ** 2
+            MSE += abs((o[a][b] - r[a][b])) ** 2
+            MSE2 += abs((s[a][b] - o[a][b])) ** 2
+    print('Simple Upscale: ' + str(MSE2))
+    print('Filter: ' + str(MSE))
+    print('Percent of error in filter: ' + str(MSE/MSE2))
 
-    # fig = plt.figure()
-    # a = fig.add_subplot(1,4,1)
-    # a.imshow(abs(origin), cmap='gray')
-    # a = fig.add_subplot(1,4,2)
-    # a.imshow(abs(upscaledLR), cmap='gray')
-    # a = fig.add_subplot(1,4,3)
-    # a.imshow(abs(result), cmap='gray')
+    fig = plt.figure()
+    a = fig.add_subplot(1,4,1)
+    a.imshow(abs(origin), cmap='gray')
+    a = fig.add_subplot(1,4,2)
+    a.imshow(abs(upscaledLR), cmap='gray')
+    a = fig.add_subplot(1,4,3)
+    a.imshow(abs(result), cmap='gray')
     # Uncomment the following line to visualize the process of RAISR image upscaling
-    # plt.show()
+    plt.show()
 
 ##### File Creation For Results #####
 
-f = open('results/FULL2_TRAIN_Error_FULL_1.txt','w')
-f.write('MSE: ' + str(MSE))
-print('MSE: ' + str(MSE))
-f.close()
+# f = open('results/FULL2_TRAIN_Error_FULL_1.txt','w')
+# f.write('MSE: ' + str(MSE))
+# print('MSE: ' + str(MSE))
+# f.close()
 
 #####################################
 

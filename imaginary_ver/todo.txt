@@ -23,3 +23,20 @@ crop and zero padding for regular images/knee images crop a square shape (2/3) a
 test for knee images
 upscalling by 1.5 (knees)
 Bicubic upscalling
+
+imagenet train on regular images, test on mri
+try adjusting crop factor to 1/2
+try normalizing over patch filter (sum all values in filter, divide by 1)
+try absolute value before filter calculations
+
+visualize different filters
+imagenet testing
+bugfix weird pixels in zero version
+sanity check for training, total mean sq error should go down
+	run test on each image in train and find total mse
+try adjusting patchsize
+play around with some variables to get improvements
+work on unit tests
+email mikki aboout summer plans cc frank
+
+consider removing pixeltype for zeropadding
