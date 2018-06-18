@@ -1,16 +1,21 @@
 import pickle
+import argparse
 from matplotlib import pyplot as plt
 import numpy as np
-basictrain = 'filter'
-full2train = 'filterfull2'
-onetrain = 'onetrain'
+
+filterpath = ''
+if __name__=="__main__":
+    parser = argparse.ArgumentParser(description='Parsing arguments')
+    parser.add_argument('filter', type = str, help = 'Which filter to display')
+    args = parser.parse_args()
+    filterpath = 'filters/' + args.filter
 
 patchsize = 11
 Qangle = 24
 Qstrength = 3
 Qcoherence = 3
 
-with open(basictrain, "rb") as fp:
+with open(filterpath, "rb") as fp:
     h = pickle.load(fp)
 
 f = plt.figure()

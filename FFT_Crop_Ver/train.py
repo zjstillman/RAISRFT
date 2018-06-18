@@ -100,8 +100,8 @@ for image in imagelist:
             angle, strength, coherence = hashkey(gradientblock, Qangle, weighting)
             location = row//(height//Qlocation)*Qlocation + col//(width//Qlocation)
             # Get pixel type
-            pixeltype = ((row-margin) % R) * R + ((col-margin) % R)
-
+            # pixeltype = ((row-margin) % R) * R + ((col-margin) % R)
+            pixeltype = 0
             location = 0
             # angle = 0
             # strength = 0
@@ -195,11 +195,11 @@ for pixeltype in range(0, R*R):
                         print(' ' * (50 - round((operationcount+1)*100/totaloperations/2)), end='')
                         print('|  ' + str(round((operationcount+1)*100/totaloperations)) + '%', end='')
                     operationcount += 1
-                    temp = np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = 1e-7)[0]
+                    temp = np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = 1e-13)[0]
                     
                     #### Normalizing Filter ####
-                    if sum(temp != 0):
-                        temp = temp/sum(temp)  
+                    # if sum(temp != 0):
+                    #     temp = temp/sum(temp)  
                     ############################
 
                     h[angle,strength,coherence,location,pixeltype] = temp
