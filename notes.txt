@@ -1,1 +1,5 @@
 Changing rcond in train can effect if simple or filtered is better.
+Full 2 trained and tested on self:
+Total simple upscale error: 7900.90
+Total Filter Error: 8113.13
+Why is filtering making things worse?

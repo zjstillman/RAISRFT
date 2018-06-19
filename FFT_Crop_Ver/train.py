@@ -40,6 +40,7 @@ gradientmargin = floor(gradientsize/2)
 Q = np.zeros((Qangle, Qstrength, Qcoherence, Qlocation*Qlocation, R*R, patchsize*patchsize, patchsize*patchsize), dtype = complex)
 V = np.zeros((Qangle, Qstrength, Qcoherence, Qlocation*Qlocation, R*R, patchsize*patchsize), dtype = complex)
 h = np.zeros((Qangle, Qstrength, Qcoherence, Qlocation*Qlocation, R*R, patchsize*patchsize), dtype = complex)
+patches = [[[[] for Cs in range(Qcoherence)] for Ss in range(Qstrength)] for As in range(Qangle)]
 mark = np.zeros((Qstrength, Qcoherence, Qangle, Qlocation*Qlocation, R*R))
 anglec = np.zeros(Qangle)
 coherencec = np.zeros(Qcoherence)
@@ -117,6 +118,7 @@ for image in imagelist:
             # Compute Q and V
             Q[angle,strength,coherence,location,pixeltype] += ATA
             V[angle,strength,coherence,location,pixeltype] += ATb
+            patches[angle][strength][coherence].append((patch, pixelHR, upscaledLR[row, col]))
             mark[coherence, strength, angle, location, pixeltype] += 1
             anglec[angle] += 1
             coherencec[coherence] += 1
@@ -183,26 +185,42 @@ print('Computing h ...')
 operationcount = 0
 totaloperations = R * R * Qangle * Qstrength * Qcoherence * Qlocation*Qlocation
 print(totaloperations)
-for pixeltype in range(0, R*R):
-    for angle in range(0, Qangle):
-        for strength in range(0, Qstrength):
-            for coherence in range(0, Qcoherence):
-                for location in range(0, Qlocation*Qlocation):
-                    print('\r' + str(operationcount) + ' '*100, end= '')
-                    if round(operationcount*100/totaloperations) != round((operationcount+1)*100/totaloperations):
-                        print('\r|', end='')
-                        print('#' * round((operationcount+1)*100/totaloperations/2), end='')
-                        print(' ' * (50 - round((operationcount+1)*100/totaloperations/2)), end='')
-                        print('|  ' + str(round((operationcount+1)*100/totaloperations)) + '%', end='')
-                    operationcount += 1
-                    temp = np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = 1e-13)[0]
-                    
-                    #### Normalizing Filter ####
-                    # if sum(temp != 0):
-                    #     temp = temp/sum(temp)  
-                    ############################
+# for pixeltype in range(0, R*R):
+total_filter = 0
+total_origin = 0
+for angle in range(0, Qangle):
+    for strength in range(0, Qstrength):
+        for coherence in range(0, Qcoherence):
+            # for location in range(0, Qlocation*Qlocation):
+            # print('\r' + str(operationcount) + ' '*100, end= '')
+            # if round(operationcount*100/totaloperations) != round((operationcount+1)*100/totaloperations):
+            #     print('\r|', end='')
+            #     print('#' * round((operationcount+1)*100/totaloperations/2), end='')
+            #     print(' ' * (50 - round((operationcount+1)*100/totaloperations/2)), end='')
+            #     print('|  ' + str(round((operationcount+1)*100/totaloperations)) + '%', end='')
+            operationcount += 1
+            temp = np.linalg.lstsq(Q[angle,strength,coherence,0,0], V[angle,strength,coherence,0,0], rcond = 1e-13)[0]
+            
+            #### Normalizing Filter ####
+            # if sum(temp != 0):
+            #     temp = temp/sum(temp)  
+            ############################
 
-                    h[angle,strength,coherence,location,pixeltype] = temp
+            h[angle,strength,coherence,0,0] = temp
+            origin_count = 0
+            filter_count = 0
+            for patch, ori, up in patches[angle][strength][coherence]:
+                origin_count += abs(ori - up) ** 2
+                filter_count += abs(patch.dot(temp) - ori) ** 2
+            if origin_count < filter_count:
+                print('Origin: ' + str(origin_count))
+                print('Filter: ' + str(filter_count))
+            total_filter += filter_count
+            total_origin += origin_count
+
+print('TOTAL Origin: ' + str(total_origin))
+print('TOTAL Filter: ' + str(total_filter))
+
 # Write filter to file
 with open(filterpath, "wb") as fp:
     pickle.dump(h, fp)

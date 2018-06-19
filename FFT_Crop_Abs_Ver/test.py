@@ -23,6 +23,8 @@ testpath = ''
 filterpath = ''
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Parsing arguments')
+    parser.add_argument('--show', action = 'store_true', help = 'Displays the original, the basic upscale, and the filtered upscale for each image in the testing set.')
+    parser.add_argument('--total', action = 'store_true', help = 'Displays the total MSE sums')
     parser.add_argument('testing_set', type = str, help = 'The set to test on.')
     parser.add_argument('filter', type = str, help = 'Which filter to use')
     args = parser.parse_args()
@@ -102,7 +104,8 @@ for parent, dirnames, filenames in os.walk(testpath):
         if filename.lower().endswith(('.bmp', '.dib', '.png', '.jpg', '.jpeg', '.pbm', '.pgm', '.ppm', '.tif', '.tiff', '.ra')):
             imagelist.append(os.path.join(parent, filename))
 
-MSE = 0
+TotalMSEsimp = 0
+TotalMSEfilt = 0
 imagecount = 1
 for image in imagelist:
     print('\r', end='')
@@ -168,18 +171,26 @@ for image in imagelist:
         for b in range(r.shape[1]):
             MSE += abs((o[a][b] - r[a][b])) ** 2
             MSE2 += abs((s[a][b] - o[a][b])) ** 2
+    TotalMSEsimp += MSE2
+    TotalMSEfilt += MSE
     print('Simple Upscale: ' + str(MSE2))
     print('Filter: ' + str(MSE))
     print('Percent of error in filter: ' + str(MSE/MSE2))
-    fig = plt.figure()
-    a = fig.add_subplot(1,4,1)
-    a.imshow(origin, cmap='gray')
-    a = fig.add_subplot(1,4,2)
-    a.imshow(upscaledLR, cmap='gray')
-    a = fig.add_subplot(1,4,3)
-    a.imshow(result, cmap='gray')
-    # Uncomment the following line to visualize the process of RAISR image upscaling
-    plt.show()
+    if args.show:
+        fig = plt.figure()
+        a = fig.add_subplot(1,4,1)
+        a.imshow(origin, cmap='gray')
+        a = fig.add_subplot(1,4,2)
+        a.imshow(upscaledLR, cmap='gray')
+        a = fig.add_subplot(1,4,3)
+        a.imshow(result, cmap='gray')
+        # Uncomment the following line to visualize the process of RAISR image upscaling
+        plt.show()
+
+    if args.total:
+        print('TOTAL Simple Upscale: ' + str(TotalMSEsimp))
+        print('TOTAL Filter: ' + str(TotalMSEfilt))
+        print('TOTAL Percent of error in filter: ' + str(TotalMSEfilt/TotalMSEsimp))
 
 ##### File Creation For Results #####
 
