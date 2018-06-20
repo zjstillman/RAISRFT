@@ -135,49 +135,49 @@ print('strength:')
 print(strengthc)
 print()
 # Preprocessing permutation matrices P for nearly-free 8x more learning examples
-print('\r', end='')
-print(' ' * 60, end='')
-print('\rPreprocessing permutation matrices P for nearly-free 8x more learning examples ...')
-P = np.zeros((patchsize*patchsize, patchsize*patchsize, 7), dtype = complex)
-rotate = np.zeros((patchsize*patchsize, patchsize*patchsize), dtype = complex)
-flip = np.zeros((patchsize*patchsize, patchsize*patchsize), dtype = complex)
-for i in range(0, patchsize*patchsize):
-    i1 = i % patchsize
-    i2 = floor(i / patchsize)
-    j = patchsize * patchsize - patchsize + i2 - patchsize * i1
-    rotate[j,i] = 1+0j
-    k = patchsize * (i2 + 1) - i1 - 1
-    flip[k,i] = 1+0j
-for i in range(1, 8):
-    i1 = i % 4
-    i2 = floor(i / 4)
-    P[:,:,i-1] = np.linalg.matrix_power(flip,i2).dot(np.linalg.matrix_power(rotate,i1))
-Qextended = np.zeros((Qangle, Qstrength, Qcoherence, R*R, patchsize*patchsize, patchsize*patchsize), dtype = complex)
-Vextended = np.zeros((Qangle, Qstrength, Qcoherence, R*R, patchsize*patchsize), dtype = complex)
-for pixeltype in range(0, R*R):
-    for angle in range(0, Qangle):
-        for strength in range(0, Qstrength):
-            for coherence in range(0, Qcoherence):
-                for m in range(1, 8):
-                    m1 = m % 4
-                    m2 = floor(m / 4)
-                    newangleslot = angle
-                    if m2 == 1:
-                        newangleslot = Qangle-angle-1
-                    newangleslot = int(newangleslot-Qangle/2*m1)
-                    while newangleslot < 0:
-                        newangleslot += Qangle
-                    newQ = P[:,:,m-1].T.dot(Q[angle,strength,coherence,pixeltype]).dot(P[:,:,m-1])
-                    newV = P[:,:,m-1].T.dot(V[angle,strength,coherence,pixeltype])
-                    Qextended[newangleslot,strength,coherence,pixeltype] += newQ
-                    Vextended[newangleslot,strength,coherence,pixeltype] += newV
-Q += Qextended
-V += Vextended
+# print('\r', end='')
+# print(' ' * 60, end='')
+# print('\rPreprocessing permutation matrices P for nearly-free 8x more learning examples ...')
+# P = np.zeros((patchsize*patchsize, patchsize*patchsize, 7), dtype = complex)
+# rotate = np.zeros((patchsize*patchsize, patchsize*patchsize), dtype = complex)
+# flip = np.zeros((patchsize*patchsize, patchsize*patchsize), dtype = complex)
+# for i in range(0, patchsize*patchsize):
+#     i1 = i % patchsize
+#     i2 = floor(i / patchsize)
+#     j = patchsize * patchsize - patchsize + i2 - patchsize * i1
+#     rotate[j,i] = 1+0j
+#     k = patchsize * (i2 + 1) - i1 - 1
+#     flip[k,i] = 1+0j
+# for i in range(1, 8):
+#     i1 = i % 4
+#     i2 = floor(i / 4)
+#     P[:,:,i-1] = np.linalg.matrix_power(flip,i2).dot(np.linalg.matrix_power(rotate,i1))
+# Qextended = np.zeros((Qangle, Qstrength, Qcoherence, R*R, patchsize*patchsize, patchsize*patchsize), dtype = complex)
+# Vextended = np.zeros((Qangle, Qstrength, Qcoherence, R*R, patchsize*patchsize), dtype = complex)
+# for pixeltype in range(0, R*R):
+#     for angle in range(0, Qangle):
+#         for strength in range(0, Qstrength):
+#             for coherence in range(0, Qcoherence):
+#                 for m in range(1, 8):
+#                     m1 = m % 4
+#                     m2 = floor(m / 4)
+#                     newangleslot = angle
+#                     if m2 == 1:
+#                         newangleslot = Qangle-angle-1
+#                     newangleslot = int(newangleslot-Qangle/2*m1)
+#                     while newangleslot < 0:
+#                         newangleslot += Qangle
+#                     newQ = P[:,:,m-1].T.dot(Q[angle,strength,coherence,pixeltype]).dot(P[:,:,m-1])
+#                     newV = P[:,:,m-1].T.dot(V[angle,strength,coherence,pixeltype])
+#                     Qextended[newangleslot,strength,coherence,pixeltype] += newQ
+#                     Vextended[newangleslot,strength,coherence,pixeltype] += newV
+# Q += Qextended
+# V += Vextended
 
 # Compute filter h
 # @jit
 def compute_filter_pixel(anlge, strength, coherence, location, pixeltype, Q, V):
-    return np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = 1e-7)[0]
+    return np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = 1e-13)[0]
 
 print('Computing h ...')
 operationcount = 0
@@ -195,7 +195,7 @@ for pixeltype in range(0, R*R):
                         print(' ' * (50 - round((operationcount+1)*100/totaloperations/2)), end='')
                         print('|  ' + str(round((operationcount+1)*100/totaloperations)) + '%', end='')
                     operationcount += 1
-                    temp = np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = 1e-7)[0]
+                    temp = np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = 1e-13)[0]
                     
                     #### Normalizing Filter ####
                     if sum(temp != 0):

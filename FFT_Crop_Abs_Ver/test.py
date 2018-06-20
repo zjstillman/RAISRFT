@@ -167,8 +167,10 @@ for image in imagelist:
     print()
     MSE = 0
     MSE2 = 0
-    for a in range(r.shape[0]):
-        for b in range(r.shape[1]):
+    for a in range(heightHR-2*margin):
+        a += margin
+        for b in range(widthHR-2*margin):
+            b += margin
             MSE += abs((o[a][b] - r[a][b])) ** 2
             MSE2 += abs((s[a][b] - o[a][b])) ** 2
     TotalMSEsimp += MSE2
