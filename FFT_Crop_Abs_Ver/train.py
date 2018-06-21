@@ -27,7 +27,7 @@ if __name__=="__main__":
     parser.add_argument('training_set', type = str, help = 'The set to train on.')
     parser.add_argument('filter_store', type = str, help = 'Which file to store the trained filter in')
     args = parser.parse_args()
-    trainpath = '../Training_Sets/' + args.training_set
+    trainpath = '../Image_Sets/' + args.training_set
     filterpath = 'filters/' + args.filter_store
 
 # Calculate the margin

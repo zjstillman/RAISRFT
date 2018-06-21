@@ -28,7 +28,7 @@ if __name__=="__main__":
     parser.add_argument('testing_set', type = str, help = 'The set to test on.')
     parser.add_argument('filter', type = str, help = 'Which filter to use')
     args = parser.parse_args()
-    testpath = '../Testing_Sets/' + args.testing_set
+    testpath = '../Image_Sets/' + args.testing_set
     filterpath = 'filters/' + args.filter
 
 # Calculate the margin
