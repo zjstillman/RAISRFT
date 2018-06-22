@@ -9,3 +9,7 @@ Full 2 train Second run:
 	Total original to simple error = 7619.56
 	Total original to filter error = 7492.47
 	Testing Data Matches
+
+Full 16 train, tested on full 2, ABS:
+	Total original to simple error = 4383.90
+	Total original to filter error = 4248.00
