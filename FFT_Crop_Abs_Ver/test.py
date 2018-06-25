@@ -123,7 +123,8 @@ for image in imagelist:
                                     #grayorigin.max()/255,
                                     1,
                                     cv2.NORM_MINMAX)
-        origin_read = origin_read.astype(complex)
+        if not args.simple:
+            origin_read = origin_read.astype(complex)
     else:
         origin_read = ra.read_ra(image)
 
