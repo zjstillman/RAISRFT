@@ -4,6 +4,8 @@ import pickle
 import ra
 import fft
 import argparse
+import cv2
+from scipy.misc import imresize
 from cgls import cgls
 from filterplot import filterplot
 from gaussian2d import gaussian2d
@@ -26,6 +28,8 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Parsing arguments')
     parser.add_argument('training_set', type = str, help = 'The set to train on.')
     parser.add_argument('filter_store', type = str, help = 'Which file to store the trained filter in')
+    parser.add_argument('--real', action = 'store_true', help = 'Using real images rather then imaginary ones')
+    parser.add_argument('--simple', action = 'store_true', help = 'Uses simple downscaling for testing')
     args = parser.parse_args()
     trainpath = '../Image_Sets/' + args.training_set
     filterpath = 'filters/' + args.filter_store
@@ -71,13 +75,39 @@ for image in imagelist:
     print('\r', end='')
     print(' ' * 60, end='')
     print('\rProcessing image ' + str(imagecount) + ' of ' + str(len(imagelist)) + ' (' + image + ')')
-    origin_im = ra.read_ra(image)
+    if(args.real):
+        origin_col = cv2.imread(image)
+        origin_read = cv2.cvtColor(origin_col, cv2.COLOR_BGR2YCrCb)[:,:,0]
+        origin_read = cv2.normalize(origin_read.astype('float'), None, 
+                                    #grayorigin.min()/255,
+                                    0,
+                                    #grayorigin.max()/255,
+                                    1,
+                                    cv2.NORM_MINMAX)
+        origin_read = origin_read.astype(complex)
+    else:
+        origin_read = ra.read_ra(image)
     
-    origin_fft = fft.fftc(origin_im)
-    origin_fft_zero = zeropad(origin_fft)
-    upscaledLR_im = fft.ifftc(origin_fft_zero)
-    upscaledLR = abs(upscaledLR_im)
-    origin = abs(origin_im)
+    if args.simple:
+        print()
+        print('using simple...')
+        print()
+        height, width = origin_read.shape
+        LR = imresize(origin_read, (floor((height+1)/2),floor((width+1)/2)), interp='bicubic', mode='F')
+        # Upscale (bilinear interpolation)
+        height, width = LR.shape
+        heightgrid = np.linspace(0, height-1, height)
+        widthgrid = np.linspace(0, width-1, width)
+        bilinearinterp = interpolate.interp2d(widthgrid, heightgrid, LR, kind='linear')
+        heightgrid = np.linspace(0, height-1, height*2-1)
+        widthgrid = np.linspace(0, width-1, width*2-1)
+        upscaledLR = bilinearinterp(widthgrid, heightgrid)
+    else:
+        origin_fft = fft.fftc(origin_read)
+        origin_fft_zero = zeropad(origin_fft)
+        upscaledLR_im = fft.ifftc(origin_fft_zero)
+        upscaledLR = abs(upscaledLR_im)
+    origin = abs(origin_read)
     # Calculate A'A, A'b and push them into Q, V
     height, width = upscaledLR.shape
     operationcount = 0
