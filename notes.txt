@@ -13,3 +13,11 @@ Full 2 train Second run:
 Full 16 train, tested on full 2, ABS:
 	Total original to simple error = 4383.90
 	Total original to filter error = 4248.00
+
+Real Images, testing:
+Simple downsclaing 200 train and test on self:
+	Total original to simple error = 94989.79
+	Total original to filter error = 65450.74
+Zero Padding 200 train and test on self:
+	Total original to simple error = 52438.57
+	Total original to filter error = 51341.36
