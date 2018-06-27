@@ -98,11 +98,13 @@ for image in imagelist:
     heightgrid = np.linspace(0, height-1, height)
     widthgrid = np.linspace(0, width-1, width)
     bilinearinterp = interpolate.interp2d(widthgrid, heightgrid, LR, kind='linear')
-    heightgrid = np.linspace(0, height-1, height*2-1)
-    widthgrid = np.linspace(0, width-1, width*2-1)
+    heightgrid = np.linspace(0, height, height*2)
+    widthgrid = np.linspace(0, width, width*2)
     upscaledLR = bilinearinterp(widthgrid, heightgrid)
 
     origin = abs(origin_read)
+    print("Origin: " + str(origin.shape))
+    print("upscaledLR: " + str(upscaledLR.shape))
     # Calculate A'A, A'b and push them into Q, V
     height, width = upscaledLR.shape
     operationcount = 0
@@ -140,7 +142,7 @@ for image in imagelist:
             ATb = np.dot(patch.T, pixelHR)
             ATb = np.array(ATb).ravel()
             # Compute Q and V
-            patches[angle][strength][coherence][pixeltype].append((patch, pixelHR, upscaledLR[row, col]))
+            # patches[angle][strength][coherence][pixeltype].append((patch, pixelHR, upscaledLR[row, col]))
             Q[angle,strength,coherence,location,pixeltype] += ATA
             V[angle,strength,coherence,location,pixeltype] += ATb
             mark[coherence, strength, angle, location, pixeltype] += 1
@@ -217,11 +219,11 @@ for pixeltype in range(0, R*R):
             for coherence in range(0, Qcoherence):
                 # for location in range(0, Qlocation*Qlocation):
                     # print('\r' + str(operationcount) + ' '*100, end= '')
-                # if round(operationcount*100/totaloperations) != round((operationcount+1)*100/totaloperations):
-                #     print('\r|', end='')
-                #     print('#' * round((operationcount+1)*100/totaloperations/2), end='')
-                #     print(' ' * (50 - round((operationcount+1)*100/totaloperations/2)), end='')
-                #     print('|  ' + str(round((operationcount+1)*100/totaloperations)) + '%', end='')
+                if round(operationcount*100/totaloperations) != round((operationcount+1)*100/totaloperations):
+                    print('\r|', end='')
+                    print('#' * round((operationcount+1)*100/totaloperations/2), end='')
+                    print(' ' * (50 - round((operationcount+1)*100/totaloperations/2)), end='')
+                    print('|  ' + str(round((operationcount+1)*100/totaloperations)) + '%', end='')
                 operationcount += 1
                 temp = np.linalg.lstsq(Q[angle,strength,coherence,0,pixeltype], V[angle,strength,coherence,0,pixeltype], rcond = 1e-13)[0]
                 
@@ -231,20 +233,20 @@ for pixeltype in range(0, R*R):
                 ############################
 
                 h[angle,strength,coherence,0,pixeltype] = temp
-                origin_count = 0
-                filter_count = 0
-                for patch, ori, up in patches[angle][strength][coherence][pixeltype]:
-                    origin_count += abs(ori - up) ** 2
-                    filter_count += abs(patch.dot(temp) - ori) ** 2
-                if origin_count < filter_count:
-                    print("Angle: " + str(angle) + ", Strength: " + str(strength) + ", Coherence: " + str(coherence) + ", Pixeltype: " + str(pixeltype))
-                    print('Origin: ' + str(origin_count))
-                    print('Filter: ' + str(filter_count))
-                total_filter += filter_count
-                total_origin += origin_count
+                # origin_count = 0
+                # filter_count = 0
+                # for patch, ori, up in patches[angle][strength][coherence][pixeltype]:
+                #     origin_count += abs(ori - up) ** 2
+                #     filter_count += abs(patch.dot(temp) - ori) ** 2
+                # if origin_count < filter_count:
+                #     print("Angle: " + str(angle) + ", Strength: " + str(strength) + ", Coherence: " + str(coherence) + ", Pixeltype: " + str(pixeltype))
+                #     print('Origin: ' + str(origin_count))
+                #     print('Filter: ' + str(filter_count))
+                # total_filter += filter_count
+                # total_origin += origin_count
 
-print('TOTAL Origin: ' + str(total_origin))
-print('TOTAL Filter: ' + str(total_filter))
+# print('TOTAL Origin: ' + str(total_origin))
+# print('TOTAL Filter: ' + str(total_filter))
 
 # Write filter to file
 with open(filterpath, "wb") as fp:
