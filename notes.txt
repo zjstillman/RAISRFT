@@ -3,6 +3,7 @@ Full 2 trained and tested on self:
 Total simple upscale error: 7900.90
 Total Filter Error: 8113.13
 Why is filtering making things worse?
+Fixed by not counting margn edge
 
 Full 2 train Second run:
 	Training data: 

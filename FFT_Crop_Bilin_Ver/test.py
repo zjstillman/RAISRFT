@@ -61,7 +61,7 @@ def crop(arr):
 # @jit
 def apply_filter(arr):
     heightHR, widthHR = arr.shape
-    predictHR = np.zeros((heightHR-2*margin, widthHR-2*margin), dtype = complex)
+    predictHR = np.zeros((heightHR-2*margin, widthHR-2*margin))
     operationcount = 0
     totaloperations = (heightHR-2*margin) * (widthHR-2*margin)
     for row in range(margin, heightHR-margin):
