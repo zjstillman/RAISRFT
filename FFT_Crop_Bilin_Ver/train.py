@@ -29,6 +29,7 @@ if __name__=="__main__":
     parser.add_argument('training_set', type = str, help = 'The set to train on.')
     parser.add_argument('filter_store', type = str, help = 'Which file to store the trained filter in')
     parser.add_argument('--real', action = 'store_true', help = 'Using real images rather then imaginary ones')
+    parser.add_argument('--cubic', action = 'store_true', help = 'Use Bicubic interpolation in place of bilinear')
     args = parser.parse_args()
     trainpath = '../Image_Sets/' + args.training_set
     filterpath = 'filters/' + args.filter_store
@@ -97,7 +98,8 @@ for image in imagelist:
     height, width = LR.shape
     heightgrid = np.linspace(0, height-1, height)
     widthgrid = np.linspace(0, width-1, width)
-    bilinearinterp = interpolate.interp2d(widthgrid, heightgrid, LR, kind='linear')
+    t = 'cubic' if args.cubic else 'linear'
+    bilinearinterp = interpolate.interp2d(widthgrid, heightgrid, LR, kind=t)
     heightgrid = np.linspace(0, height, height*2)
     widthgrid = np.linspace(0, width, width*2)
     upscaledLR = bilinearinterp(widthgrid, heightgrid)

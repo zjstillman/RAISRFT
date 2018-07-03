@@ -27,6 +27,7 @@ if __name__=="__main__":
     parser.add_argument('--show', action = 'store_true', help = 'Displays the original, the basic upscale, and the filtered upscale for each image in the testing set.')
     parser.add_argument('--total', action = 'store_true', help = 'Displays the total MSE sums')
     parser.add_argument('--real', action = 'store_true', help = 'Using real images rather then imaginary ones')
+    parser.add_argument('--cubic', action = 'store_true', help = 'Use Bicubic interpolation in place of bilinear')
     parser.add_argument('testing_set', type = str, help = 'The set to test on.')
     parser.add_argument('filter', type = str, help = 'Which filter to use')
     args = parser.parse_args()
@@ -136,7 +137,8 @@ for image in imagelist:
     height, width = LR.shape
     heightgrid = np.linspace(0, height-1, height)
     widthgrid = np.linspace(0, width-1, width)
-    bilinearinterp = interpolate.interp2d(widthgrid, heightgrid, LR, kind='linear')
+    t = 'cubic' if args.cubic else 'linear'
+    bilinearinterp = interpolate.interp2d(widthgrid, heightgrid, LR, kind=t)
     heightgrid = np.linspace(0, height, height*2)
     widthgrid = np.linspace(0, width, width*2)
     upscaledLR = bilinearinterp(widthgrid, heightgrid)
