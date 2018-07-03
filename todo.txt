@@ -40,3 +40,8 @@ work on unit tests
 email mikki aboout summer plans cc frank
 
 consider removing pixeltype for zeropadding
+
+Try considering scaling factors for fft
+consider using bicubic
+Possibly add bias term for each filter
+Get all angles

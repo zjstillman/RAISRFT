@@ -61,7 +61,7 @@ def crop(arr):
     n = np.zeros((width, height), dtype = 'complex')
     for i in range(arr.shape[0]//4, 3*arr.shape[0]//4):
         for j in range(arr.shape[1]//4, 3*arr.shape[1]//4):
-            n[i-arr.shape[0]//4][j-arr.shape[1]//4] = arr[i][j]
+            n[i-arr.shape[0]//4][j-arr.shape[1]//4] = arr[i][j] * 1/2
     return n
 
 # Get image list

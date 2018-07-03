@@ -22,3 +22,8 @@ Simple downsclaing 200 train and test on self:
 Zero Padding 200 train and test on self:
 	Total original to simple error = 52438.57
 	Total original to filter error = 51341.36
+
+FFT crop, bilinear upscale 100 images train/test(Likely error in calculating simple error):
+	Total original to simple error = 3269603.47
+	Total original to filter error = 28478.25
+	This is a bit ridiculous, if it is actually this good like serious !wow!

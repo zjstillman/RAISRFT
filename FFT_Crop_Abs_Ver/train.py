@@ -132,7 +132,7 @@ for image in imagelist:
             location = row//(height//Qlocation)*Qlocation + col//(width//Qlocation)
             # Get pixel type
             pixeltype = ((row-margin) % R) * R + ((col-margin) % R)
-
+            pixeltype = 0
             location = 0
             # angle = 0
             # strength = 0

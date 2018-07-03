@@ -33,7 +33,7 @@ for i in range(Qangle):
 		for k in range(Qcoherence):
 			try:
 				a = plt.subplot2grid((Qcoherence*Qstrength,Qangle), (j*Qcoherence + k,i))
-				a.imshow(wrap(h[i, j, k, 0, 0]), cmap = 'gray')
+				a.imshow(wrap(h[i, j, k, 0, 3]), cmap = 'gray')
 				a.set_title(str(i) + ', ' + str(j) + ', ' + str(k))
 				plt.axis('off')
 			except IndexError:
