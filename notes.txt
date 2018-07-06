@@ -27,3 +27,12 @@ FFT crop, bilinear upscale 100 images train/test(Likely error in calculating sim
 	Total original to simple error = 3269603.47
 	Total original to filter error = 28478.25
 	This is a bit ridiculous, if it is actually this good like serious !wow!
+
+FFT crop bilinear after scaling fix 100 images train/test:
+	Total original to simple error = 53732.73
+	Total original to filter error = 28371.43
+	Bicubic:
+	Total original to simple error = 51872.19
+	Total original to filter error = 29053.14
+
+Bilinear seems better

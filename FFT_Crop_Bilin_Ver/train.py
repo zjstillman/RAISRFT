@@ -30,6 +30,7 @@ if __name__=="__main__":
     parser.add_argument('filter_store', type = str, help = 'Which file to store the trained filter in')
     parser.add_argument('--real', action = 'store_true', help = 'Using real images rather then imaginary ones')
     parser.add_argument('--cubic', action = 'store_true', help = 'Use Bicubic interpolation in place of bilinear')
+    parser.add_argument('--extra', action = 'store_true', help = 'Calculates extra data for filters')
     args = parser.parse_args()
     trainpath = '../Image_Sets/' + args.training_set
     filterpath = 'filters/' + args.filter_store
@@ -103,7 +104,7 @@ for image in imagelist:
     heightgrid = np.linspace(0, height, height*2)
     widthgrid = np.linspace(0, width, width*2)
     upscaledLR = bilinearinterp(widthgrid, heightgrid)
-
+    upscaledLR.astype(float)
     origin = abs(origin_read)
     print("Origin: " + str(origin.shape))
     print("upscaledLR: " + str(upscaledLR.shape))
@@ -165,44 +166,45 @@ print('strength:')
 print(strengthc)
 print()
 # Preprocessing permutation matrices P for nearly-free 8x more learning examples
-# print('\r', end='')
-# print(' ' * 60, end='')
-# print('\rPreprocessing permutation matrices P for nearly-free 8x more learning examples ...')
-# P = np.zeros((patchsize*patchsize, patchsize*patchsize, 7), dtype = complex)
-# rotate = np.zeros((patchsize*patchsize, patchsize*patchsize), dtype = complex)
-# flip = np.zeros((patchsize*patchsize, patchsize*patchsize), dtype = complex)
-# for i in range(0, patchsize*patchsize):
-#     i1 = i % patchsize
-#     i2 = floor(i / patchsize)
-#     j = patchsize * patchsize - patchsize + i2 - patchsize * i1
-#     rotate[j,i] = 1+0j
-#     k = patchsize * (i2 + 1) - i1 - 1
-#     flip[k,i] = 1+0j
-# for i in range(1, 8):
-#     i1 = i % 4
-#     i2 = floor(i / 4)
-#     P[:,:,i-1] = np.linalg.matrix_power(flip,i2).dot(np.linalg.matrix_power(rotate,i1))
-# Qextended = np.zeros((Qangle, Qstrength, Qcoherence, R*R, patchsize*patchsize, patchsize*patchsize), dtype = complex)
-# Vextended = np.zeros((Qangle, Qstrength, Qcoherence, R*R, patchsize*patchsize), dtype = complex)
-# for pixeltype in range(0, R*R):
-#     for angle in range(0, Qangle):
-#         for strength in range(0, Qstrength):
-#             for coherence in range(0, Qcoherence):
-#                 for m in range(1, 8):
-#                     m1 = m % 4
-#                     m2 = floor(m / 4)
-#                     newangleslot = angle
-#                     if m2 == 1:
-#                         newangleslot = Qangle-angle-1
-#                     newangleslot = int(newangleslot-Qangle/2*m1)
-#                     while newangleslot < 0:
-#                         newangleslot += Qangle
-#                     newQ = P[:,:,m-1].T.dot(Q[angle,strength,coherence,pixeltype]).dot(P[:,:,m-1])
-#                     newV = P[:,:,m-1].T.dot(V[angle,strength,coherence,pixeltype])
-#                     Qextended[newangleslot,strength,coherence,pixeltype] += newQ
-#                     Vextended[newangleslot,strength,coherence,pixeltype] += newV
-# Q += Qextended
-# V += Vextended
+if args.extra:
+    print('\r', end='')
+    print(' ' * 60, end='')
+    print('\rPreprocessing permutation matrices P for nearly-free 8x more learning examples ...')
+    P = np.zeros((patchsize*patchsize, patchsize*patchsize, 7))
+    rotate = np.zeros((patchsize*patchsize, patchsize*patchsize))
+    flip = np.zeros((patchsize*patchsize, patchsize*patchsize))
+    for i in range(0, patchsize*patchsize):
+        i1 = i % patchsize
+        i2 = floor(i / patchsize)
+        j = patchsize * patchsize - patchsize + i2 - patchsize * i1
+        rotate[j,i] = 1
+        k = patchsize * (i2 + 1) - i1 - 1
+        flip[k,i] = 1
+    for i in range(1, 8):
+        i1 = i % 4
+        i2 = floor(i / 4)
+        P[:,:,i-1] = np.linalg.matrix_power(flip,i2).dot(np.linalg.matrix_power(rotate,i1))
+    Qextended = np.zeros((Qangle, Qstrength, Qcoherence, Qlocation*Qlocation, R*R, patchsize*patchsize, patchsize*patchsize))
+    Vextended = np.zeros((Qangle, Qstrength, Qcoherence, Qlocation*Qlocation, R*R, patchsize*patchsize))
+    for pixeltype in range(0, R*R):
+        for angle in range(0, Qangle):
+            for strength in range(0, Qstrength):
+                for coherence in range(0, Qcoherence):
+                    for m in range(1, 8):
+                        m1 = m % 4
+                        m2 = floor(m / 4)
+                        newangleslot = angle
+                        if m2 == 1:
+                            newangleslot = Qangle-angle-1
+                        newangleslot = int(newangleslot-Qangle/2*m1)
+                        while newangleslot < 0:
+                            newangleslot += Qangle
+                        newQ = P[:,:,m-1].T.dot(Q[angle,strength,coherence,0,pixeltype]).dot(P[:,:,m-1])
+                        newV = P[:,:,m-1].T.dot(V[angle,strength,coherence,0,pixeltype])
+                        Qextended[newangleslot,strength,coherence,0,pixeltype] += newQ
+                        Vextended[newangleslot,strength,coherence,0,pixeltype] += newV
+    Q += Qextended
+    V += Vextended
 
 # Compute filter h
 # @jit
