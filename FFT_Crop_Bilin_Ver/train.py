@@ -158,7 +158,7 @@ for image in imagelist:
             # patches[angle][strength][coherence][pixeltype].append((patch, pixelHR, upscaledLR[row, col]))
             Q[angle,strength,coherence,location,pixeltype] += ATA
             V[angle,strength,coherence,location,pixeltype] += ATb
-            mark[coherence, strength, angle, location, pixeltype] += 1
+            mark[strength, coherence, angle, location, pixeltype] += 1
             anglec[angle] += 1
             coherencec[coherence] += 1
             locationc[location] += 1
