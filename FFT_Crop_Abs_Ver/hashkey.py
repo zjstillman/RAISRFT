@@ -20,9 +20,9 @@ def hashkey(block, Qangle, W):
     nonzerow = np.count_nonzero(np.isreal(w))
     nonzerov = np.count_nonzero(np.isreal(v))
     if nonzerow != 0:
-        w = np.absolute(w)
+        w = np.real(w)
     if nonzerov != 0:
-        v = np.absolute(v)
+        v = np.real(v)
 
     # Sort w and v according to the descending order of w
     idx = w.argsort()[::-1]

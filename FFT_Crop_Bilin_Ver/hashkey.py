@@ -3,7 +3,7 @@ from math import atan2, floor, pi
 # from numba import jit
 
 # @jit
-def hashkey(block, Qangle, W):
+def hashkey(block, Qangle, W, dubC = False, dubS = False):
     # Calculate gradient
     gy, gx = np.gradient(block)
 
@@ -48,23 +48,51 @@ def hashkey(block, Qangle, W):
 
     # Quantize
     angle = floor(theta/pi*Qangle)
-    if lamda < 0.0001:
-        strength = 0
-    elif lamda > 0.001:
-        strength = 2
+    if dubS:
+        if lamda < 0.00001:
+            strength = 0
+        elif lamda > 0.01:
+            strength = 5
+        elif lamda < .0001:
+            strength = 1
+        elif lamda > 0.001:
+            strength = 4
+        elif lamda < 0.0004:
+            strength = 2
+        else:
+            strength = 3
     else:
-        strength = 1
+        if lamda < 0.0001:
+            strength = 0
+        elif lamda > 0.001:
+            strength = 2
+        else:
+            strength = 1
     # strength = 0
-    if u < 0.25:
-        coherence = 0
-    elif u > 0.5:
-        coherence = 2
+    if dubC:
+        if u < 0.1:
+            coherence = 0
+        elif u < 0.25:
+            coherence = 1
+        elif u < 0.4:
+            coherence = 2
+        elif u < 0.55:
+            coherence = 3
+        elif u < 0.7:
+            coherence = 4
+        else:
+            coherence = 5
     else:
-        coherence = 1
+        if u < 0.25:
+            coherence = 0
+        elif u > 0.5:
+            coherence = 2
+        else:
+            coherence = 1
 
     # Bound the output to the desired ranges
-    if angle > 23:
-        angle = 23
+    if angle > Qangle:
+        angle = Qangle
     elif angle < 0:
         angle = 0
 

@@ -28,11 +28,20 @@ if __name__=="__main__":
     parser.add_argument('--total', action = 'store_true', help = 'Displays the total MSE sums')
     parser.add_argument('--real', action = 'store_true', help = 'Using real images rather then imaginary ones')
     parser.add_argument('--cubic', action = 'store_true', help = 'Use Bicubic interpolation in place of bilinear')
+    parser.add_argument('--a', action = 'store_true', help = 'Use double the number of angles')
+    parser.add_argument('--c', action = 'store_true', help = 'Use double the number of coherences')
+    parser.add_argument('--s', action = 'store_true', help = 'Use double the number of strengths')
     parser.add_argument('testing_set', type = str, help = 'The set to test on.')
     parser.add_argument('filter', type = str, help = 'Which filter to use')
     args = parser.parse_args()
     testpath = '../Image_Sets/' + args.testing_set
     filterpath = 'filters/' + args.filter
+if args.a:
+    Qangle *= 2
+if args.s:
+    Qstrength *= 2
+if args.c:
+    Qcoherence *= 2
 
 # Calculate the margin
 maxblocksize = max(patchsize, gradientsize)
@@ -79,7 +88,7 @@ def apply_filter(arr):
             # Get gradient block
             gradientblock = arr[row-gradientmargin:row+gradientmargin+1, col-gradientmargin:col+gradientmargin+1].copy()
             # Calculate hashkey
-            angle, strength, coherence = hashkey(gradientblock, Qangle, weighting)
+            angle, strength, coherence = hashkey(gradientblock, Qangle, weighting, dubC = args.c, dubS = args.s)
             location = row//(heightHR//Qlocation)*Qlocation + col//(widthHR//Qlocation)
             # Get pixel type
             pixeltype = ((row-margin) % R) * R + ((col-margin) % R)

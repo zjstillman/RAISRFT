@@ -31,9 +31,19 @@ if __name__=="__main__":
     parser.add_argument('--real', action = 'store_true', help = 'Using real images rather then imaginary ones')
     parser.add_argument('--cubic', action = 'store_true', help = 'Use Bicubic interpolation in place of bilinear')
     parser.add_argument('--extra', action = 'store_true', help = 'Calculates extra data for filters')
+    parser.add_argument('--a', action = 'store_true', help = 'Use double the number of angles')
+    parser.add_argument('--c', action = 'store_true', help = 'Use double the number of coherences')
+    parser.add_argument('--s', action = 'store_true', help = 'Use double the number of strengths')
     args = parser.parse_args()
     trainpath = '../Image_Sets/' + args.training_set
     filterpath = 'filters/' + args.filter_store
+
+if args.a:
+    Qangle *= 2
+if args.s:
+    Qstrength *= 2
+if args.c:
+    Qcoherence *= 2
 
 # Calculate the margin
 maxblocksize = max(patchsize, gradientsize)
@@ -127,7 +137,7 @@ for image in imagelist:
             # Get gradient block
             gradientblock = upscaledLR[row-gradientmargin:row+gradientmargin+1, col-gradientmargin:col+gradientmargin+1].copy()
             # Calculate hashkey
-            angle, strength, coherence = hashkey(gradientblock, Qangle, weighting)
+            angle, strength, coherence = hashkey(gradientblock, Qangle, weighting, dubC = args.c, dubS = args.s)
             location = row//(height//Qlocation)*Qlocation + col//(width//Qlocation)
             # Get pixel type
             pixeltype = ((row-margin) % R) * R + ((col-margin) % R)

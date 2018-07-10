@@ -94,7 +94,7 @@ for image in imagelist:
         print('using simple...')
         print()
         height, width = origin_read.shape
-        LR = imresize(origin_read, (floor((height+1)/2),floor((width+1)/2)), interp='bicubic', mode='F')
+        LR = imresize(origin_read, (floor((height+1)/2),floor((width+1)/2)), interp='bilinear', mode='F')
         # Upscale (bilinear interpolation)
         height, width = LR.shape
         heightgrid = np.linspace(0, height-1, height)
@@ -229,8 +229,8 @@ for pixeltype in range(0, R*R):
                     temp = np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = 1e-13)[0]
                     
                     #### Normalizing Filter ####
-                    if sum(temp != 0):
-                        temp = temp/sum(temp)    
+                    # if sum(temp != 0):
+                    #     temp = temp/sum(temp)    
                     ############################
 
                     h[angle,strength,coherence,location,pixeltype] = temp

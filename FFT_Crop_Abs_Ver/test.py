@@ -60,7 +60,7 @@ def zeropad(arr):
 # @jit
 def apply_filter(arr):
     heightHR, widthHR = arr.shape
-    predictHR = np.zeros((heightHR-2*margin, widthHR-2*margin), dtype = complex)
+    predictHR = np.zeros((heightHR-2*margin, widthHR-2*margin))
     operationcount = 0
     totaloperations = (heightHR-2*margin) * (widthHR-2*margin)
     for row in range(margin, heightHR-margin):
@@ -130,7 +130,7 @@ for image in imagelist:
 
     if args.simple:
         height, width = origin_read.shape
-        LR = imresize(origin_read, (floor((height+1)/2),floor((width+1)/2)), interp='bicubic', mode='F')
+        LR = imresize(origin_read, (floor((height+1)/2),floor((width+1)/2)), interp='bilinear', mode='F')
         # Upscale (bilinear interpolation)
         height, width = LR.shape
         heightgrid = np.linspace(0, height-1, height)

@@ -45,3 +45,8 @@ Try considering scaling factors for fft
 consider using bicubic
 Possibly add bias term for each filter
 Get all angles
+
+train on single line image
+consider adding filter for each pixel in patch, sum all outputs
+Try more angles/coherence/strength
+try changing patch size

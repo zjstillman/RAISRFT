@@ -36,3 +36,13 @@ FFT crop bilinear after scaling fix 100 images train/test:
 	Total original to filter error = 29053.14
 
 Bilinear seems better
+
+Extra vs no Extra in Bilinear version (100 test):
+No Extra:
+	Total original to simple error = 53732.73
+	Total original to filter error = 27963.02
+Extra:
+	Total original to simple error = 53732.73
+	Total original to filter error = 46814.68
+
+No Extra is better it seems
