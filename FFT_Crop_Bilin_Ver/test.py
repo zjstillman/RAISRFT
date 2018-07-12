@@ -31,6 +31,7 @@ if __name__=="__main__":
     parser.add_argument('--a', action = 'store_true', help = 'Use double the number of angles')
     parser.add_argument('--c', action = 'store_true', help = 'Use double the number of coherences')
     parser.add_argument('--s', action = 'store_true', help = 'Use double the number of strengths')
+    parser.add_argument('--p', action = 'store_true', help = 'Use double the patchsize')
     parser.add_argument('testing_set', type = str, help = 'The set to test on.')
     parser.add_argument('filter', type = str, help = 'Which filter to use')
     args = parser.parse_args()
@@ -42,6 +43,9 @@ if args.s:
     Qstrength *= 2
 if args.c:
     Qcoherence *= 2
+if args.p:
+    patchsize = patchsize * 2 - 1
+    gradientsize = patchsize - 2
 
 # Calculate the margin
 maxblocksize = max(patchsize, gradientsize)

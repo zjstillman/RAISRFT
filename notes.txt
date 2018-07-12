@@ -46,3 +46,21 @@ Extra:
 	Total original to filter error = 46814.68
 
 No Extra is better it seems
+
+
+Which parameter to increase:
+	Total original to simple error: 53732.73
+	Control:
+		Total original to filter error: 27963.02
+
+	Angle:
+		Total original to filter error: 27712.12
+
+	Coherence:
+		Total original to filter error: 27697.30
+
+	Strength:
+		Total original to filter error: 27496.35
+
+	All:
+		Total original to filter error: 26068.63
