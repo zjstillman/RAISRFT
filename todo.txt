@@ -50,3 +50,11 @@ train on single line image
 consider adding filter for each pixel in patch, sum all outputs
 Try more angles/coherence/strength
 try changing patch size
+
+Concatonate images to print
+Make presentation for Wednesday
+-Why, problem, goal
+-Raisr
+-differences between this and other methods (RAISR, zeropadding MRI)
+-results
+Test on MRI images

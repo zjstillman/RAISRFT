@@ -64,3 +64,20 @@ Which parameter to increase:
 
 	All:
 		Total original to filter error: 26068.63
+
+	Patch sized doubled!!!
+	Total original to simple error: 51483.35
+	Control:
+		Total original to filter error: 25104.39
+
+	Angle:
+		Total original to filter error: 24327.04
+
+	Coherence:
+		Total original to filter error: 24346.76
+
+	Strength:
+		Total original to filter error: 23853.77
+
+	All:
+		Total original to filter error: 20245.11

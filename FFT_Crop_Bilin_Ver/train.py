@@ -31,6 +31,7 @@ if __name__=="__main__":
     parser.add_argument('--real', action = 'store_true', help = 'Using real images rather then imaginary ones')
     parser.add_argument('--cubic', action = 'store_true', help = 'Use Bicubic interpolation in place of bilinear')
     parser.add_argument('--extra', action = 'store_true', help = 'Calculates extra data for filters')
+    parser.add_argument('--full_filter', action = 'store_true', help = 'Use a filter that predicts every pixel in a patch')
     parser.add_argument('--a', action = 'store_true', help = 'Use double the number of angles')
     parser.add_argument('--c', action = 'store_true', help = 'Use double the number of coherences')
     parser.add_argument('--s', action = 'store_true', help = 'Use double the number of strengths')
@@ -57,7 +58,9 @@ gradientmargin = floor(gradientsize/2)
 
 Q = np.zeros((Qangle, Qstrength, Qcoherence, Qlocation*Qlocation, R*R, patchsize*patchsize, patchsize*patchsize))
 V = np.zeros((Qangle, Qstrength, Qcoherence, Qlocation*Qlocation, R*R, patchsize*patchsize))
+Vs = np.zeros((Qangle, Qstrength, Qcoherence, Qlocation*Qlocation, R*R, patchsize, patchsize, patchsize*patchsize))
 h = np.zeros((Qangle, Qstrength, Qcoherence, Qlocation*Qlocation, R*R, patchsize*patchsize))
+hs = np.zeros((Qangle, Qstrength, Qcoherence, Qlocation*Qlocation, R*R, patchsize, patchsize, patchsize*patchsize))
 patches = [[[[[] for Ps in range(R*R)] for Cs in range(Qcoherence)] for Ss in range(Qstrength)] for As in range(Qangle)]
 mark = np.zeros((Qstrength, Qcoherence, Qangle, Qlocation*Qlocation, R*R))
 anglec = np.zeros(Qangle)
@@ -162,6 +165,12 @@ for image in imagelist:
             # patches[angle][strength][coherence][pixeltype].append((patch, pixelHR, upscaledLR[row, col]))
             Q[angle,strength,coherence,location,pixeltype] += ATA
             V[angle,strength,coherence,location,pixeltype] += ATb
+            if(args.full_filter):
+                for i in range(patchsize):
+                    for j in range(patchsize):
+                        ATbs = np.dot(patch.t, upscaledLR[row-patchmargin + i, col-patchmargin + j])
+                        ATbs = np.array(ATbs).ravel()
+                        Vs[angle,strength,coherence,location,pixeltype, i, j] += ATbs
             mark[strength, coherence, angle, location, pixeltype] += 1
             anglec[angle] += 1
             coherencec[coherence] += 1
@@ -180,7 +189,7 @@ print('strength:')
 print(strengthc)
 print()
 # Preprocessing permutation matrices P for nearly-free 8x more learning examples
-if args.extra:
+if args.extra and not args.full_filter:
     print('\r', end='')
     print(' ' * 60, end='')
     print('\rPreprocessing permutation matrices P for nearly-free 8x more learning examples ...')
@@ -251,6 +260,11 @@ for pixeltype in range(0, R*R):
                 ############################
 
                 h[angle,strength,coherence,0,pixeltype] = temp
+                if args.full_filter:
+                    for i in range(patchsize):
+                        for j in range(patchsize):
+                            temp = np.linalg.lstsq(Q[angle,strength,coherence,0,pixeltype], Vs[angle,strength,coherence,0,pixeltype, i, j], rcond = 1e-13)[0]
+                            hs[angle,strength,coherence,0,pixeltype,i,j] = temp
                 # origin_count = 0
                 # filter_count = 0
                 # for patch, ori, up in patches[angle][strength][coherence][pixeltype]:
@@ -269,6 +283,9 @@ for pixeltype in range(0, R*R):
 # Write filter to file
 with open(filterpath, "wb") as fp:
     pickle.dump(h, fp)
+
+with open(filterpath + '_full_filter', "wb") as fp:
+    pickle.dump(hs, fp)
 
 # Uncomment the following line to show the learned filters
 # filterplot(h, R, Qangle, Qstrength, Qcoherence, patchsize)

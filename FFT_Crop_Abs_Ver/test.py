@@ -81,7 +81,6 @@ def apply_filter(arr):
             location = row//(heightHR//Qlocation)*Qlocation + col//(widthHR//Qlocation)
             # Get pixel type
             pixeltype = ((row-margin) % R) * R + ((col-margin) % R)
-            pixeltype = 0
             location = 0
             # angle = 0
             # strength = 0
