@@ -81,3 +81,6 @@ Which parameter to increase:
 
 	All:
 		Total original to filter error: 20245.11
+
+---------------------------------------
+Absolute Value Full16 Train Full2 Test
