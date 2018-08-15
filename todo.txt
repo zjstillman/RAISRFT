@@ -58,3 +58,9 @@ Make presentation for Wednesday
 -differences between this and other methods (RAISR, zeropadding MRI)
 -results
 Test on MRI images
+
+
+Try visualizing filter better with log
+Only train on center slices (125-225)
+try several different sigmas
+retest with new gradient size

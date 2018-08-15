@@ -16,8 +16,9 @@ from scipy import interpolate
 
 # Define parameters
 R = 2
+sigma = 2
 patchsize = 11
-gradientsize = 9
+gradientsize = 11
 Qangle = 24
 Qstrength = 3
 Qcoherence = 3
@@ -28,9 +29,11 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Parsing arguments')
     parser.add_argument('training_set', type = str, help = 'The set to train on.')
     parser.add_argument('filter_store', type = str, help = 'Which file to store the trained filter in')
+    parser.add_argument('sigma', type = int, help = 'sigma value')
     parser.add_argument('--real', action = 'store_true', help = 'Using real images rather then imaginary ones')
     parser.add_argument('--simple', action = 'store_true', help = 'Uses simple downscaling for testing')
     args = parser.parse_args()
+    sigma = args.sigma
     trainpath = '../Image_Sets/' + args.training_set
     filterpath = 'filters/' + args.filter_store
 
@@ -51,7 +54,7 @@ strengthc = np.zeros(Qstrength)
 
 # Matrix preprocessing
 # Preprocessing normalized Gaussian matrix W for hashkey calculation
-weighting = gaussian2d([gradientsize, gradientsize], 2)
+weighting = gaussian2d([gradientsize, gradientsize], sigma)
 weighting = np.diag(weighting.ravel())
 
 # @jit
@@ -214,26 +217,26 @@ print('Computing h ...')
 operationcount = 0
 totaloperations = R * R * Qangle * Qstrength * Qcoherence * Qlocation*Qlocation
 print(totaloperations)
-for pixeltype in range(0, R*R):
-    for angle in range(0, Qangle):
-        for strength in range(0, Qstrength):
-            for coherence in range(0, Qcoherence):
-                for location in range(0, Qlocation*Qlocation):
-                    # print('\r' + str(operationcount) + ' '*100, end= '')
-                    if round(operationcount*100/totaloperations) != round((operationcount+1)*100/totaloperations):
-                        print('\r|', end='')
-                        print('#' * round((operationcount+1)*100/totaloperations/2), end='')
-                        print(' ' * (50 - round((operationcount+1)*100/totaloperations/2)), end='')
-                        print('|  ' + str(round((operationcount+1)*100/totaloperations)) + '%', end='')
-                    operationcount += 1
-                    temp = np.linalg.lstsq(Q[angle,strength,coherence,location,pixeltype], V[angle,strength,coherence,location,pixeltype], rcond = 1e-13)[0]
-                    
-                    #### Normalizing Filter ####
-                    # if sum(temp != 0):
-                    #     temp = temp/sum(temp)    
-                    ############################
+# for pixeltype in range(0, R*R):
+for angle in range(0, Qangle):
+    for strength in range(0, Qstrength):
+        for coherence in range(0, Qcoherence):
+            # for location in range(0, Qlocation*Qlocation):
+            # print('\r' + str(operationcount) + ' '*100, end= '')
+            if round(operationcount*100/totaloperations) != round((operationcount+1)*100/totaloperations):
+                print('\r|', end='')
+                print('#' * round((operationcount+1)*100/totaloperations/2), end='')
+                print(' ' * (50 - round((operationcount+1)*100/totaloperations/2)), end='')
+                print('|  ' + str(round((operationcount+1)*100/totaloperations)) + '%', end='')
+            operationcount += 1
+            temp = np.linalg.lstsq(Q[angle,strength,coherence,0,0], V[angle,strength,coherence,0,0], rcond = 1e-13)[0]
+            
+            #### Normalizing Filter ####
+            # if sum(temp != 0):
+            #     temp = temp/sum(temp)    
+            ############################
 
-                    h[angle,strength,coherence,location,pixeltype] = temp
+            h[angle,strength,coherence,0,0] = temp
 
 
 # Write filter to file

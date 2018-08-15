@@ -14,8 +14,9 @@ from scipy import interpolate
 
 # Define parameters
 R = 2
+sigma = 2
 patchsize = 11
-gradientsize = 9
+gradientsize = 11
 Qangle = 24
 Qstrength = 3
 Qcoherence = 3
@@ -30,7 +31,9 @@ if __name__=="__main__":
     parser.add_argument('--simple', action = 'store_true', help = 'Uses simple downscaling for testing')
     parser.add_argument('testing_set', type = str, help = 'The set to test on.')
     parser.add_argument('filter', type = str, help = 'Which filter to use')
+    parser.add_argument('sigma', type = int, help = 'sigma value')
     args = parser.parse_args()
+    sigma = args.sigma
     testpath = '../Image_Sets/' + args.testing_set
     filterpath = 'filters/' + args.filter
 
@@ -97,7 +100,7 @@ def apply_filter(arr):
 
 # Matrix preprocessing
 # Preprocessing normalized Gaussian matrix W for hashkey calculation
-weighting = gaussian2d([gradientsize, gradientsize], 2)
+weighting = gaussian2d([gradientsize, gradientsize], sigma)
 weighting = np.diag(weighting.ravel())
 
 # Get image list
