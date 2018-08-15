@@ -4,3 +4,4 @@ for i in 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142
 do
 	cp ../Image_Sets/full16/${j}_${i}.ra ../Image_Sets/crop16/
 done
+done
