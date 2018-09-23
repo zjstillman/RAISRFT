@@ -13,10 +13,10 @@ if not os.path.exists('train_img_slices'):
 def download_volume(i):
     if i < 17:
         folder = 'train_img_slices'
-    # elif i < 19:
-    #     folder = 'valid_img_slices'
-    # else:
-    #     folder = 'test_img_slices'
+    elif i < 19:
+        folder = 'valid_img_slices'
+    else:
+        folder = 'test_img_slices'
         
     for j in range(320):
         
@@ -29,4 +29,4 @@ def download_volume(i):
     
 with multiprocessing.Pool() as pool:
 
-    pool.map(download_volume, range(1, 17))
+    pool.map(download_volume, range(17, 20))

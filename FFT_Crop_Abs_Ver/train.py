@@ -16,7 +16,7 @@ from scipy import interpolate
 
 # Define parameters
 R = 2
-sigma = 2
+sigma = 1
 patchsize = 11
 gradientsize = 11
 Qangle = 24
@@ -29,11 +29,11 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Parsing arguments')
     parser.add_argument('training_set', type = str, help = 'The set to train on.')
     parser.add_argument('filter_store', type = str, help = 'Which file to store the trained filter in')
-    parser.add_argument('sigma', type = int, help = 'sigma value')
+    # parser.add_argument('sigma', type = int, help = 'sigma value')
     parser.add_argument('--real', action = 'store_true', help = 'Using real images rather then imaginary ones')
     parser.add_argument('--simple', action = 'store_true', help = 'Uses simple downscaling for testing')
     args = parser.parse_args()
-    sigma = args.sigma
+    # sigma = args.sigma
     trainpath = '../Image_Sets/' + args.training_set
     filterpath = 'filters/' + args.filter_store
 

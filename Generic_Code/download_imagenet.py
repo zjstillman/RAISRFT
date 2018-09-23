@@ -4,7 +4,7 @@ import os
 
 file = open("fall11_urls.txt", "r")
 i = 0
-while i < 1000:
+while i < 10:
 	try:
 		f = open('imagenet/' + str(i) + '.jpg','wb')
 		f.write(urllib.request.urlopen(file.readline().split()[1]).read())

@@ -64,3 +64,13 @@ Try visualizing filter better with log
 Only train on center slices (125-225)
 try several different sigmas
 retest with new gradient size
+
+1 page abstract
+-why is it better
+-tests needed
+train on regular images
+use non trained images for testing
+use sigma = 1
+adding noise
+send email to keys@eecs.berkeley.edu cc Miki and Frank
+look at abstracts
