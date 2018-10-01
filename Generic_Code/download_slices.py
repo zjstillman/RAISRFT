@@ -4,10 +4,10 @@ import multiprocessing
 
 if not os.path.exists('train_img_slices'):
     os.makedirs('train_img_slices')
-# if not os.path.exists('valid_img_slices'):
-#     os.makedirs('valid_img_slices')
-# if not os.path.exists('test_img_slices'):
-#     os.makedirs('test_img_slices')
+if not os.path.exists('valid_img_slices'):
+    os.makedirs('valid_img_slices')
+if not os.path.exists('test_img_slices'):
+    os.makedirs('test_img_slices')
 
 
 def download_volume(i):
@@ -29,4 +29,4 @@ def download_volume(i):
     
 with multiprocessing.Pool() as pool:
 
-    pool.map(download_volume, range(17, 20))
+    pool.map(download_volume, range(17, 21))
