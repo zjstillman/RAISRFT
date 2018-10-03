@@ -73,4 +73,11 @@ use non trained images for testing
 use sigma = 1
 adding noise
 send email to keys@eecs.berkeley.edu cc Miki and Frank
-look at abstracts
+look at abstracts ISMRM.org
+-Less than 750 words
+-5 figs max
+https://cds.ismrm.org/protected/18MPresentations/abstracts/3365.html
+
+training on real images filters for bilinear vs zeropadding
+training on natural images vs MRI
+filters from regular images applied to MR vs MR onto MR

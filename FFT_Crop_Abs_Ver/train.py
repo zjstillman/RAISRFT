@@ -80,6 +80,8 @@ for image in imagelist:
     print('\rProcessing image ' + str(imagecount) + ' of ' + str(len(imagelist)) + ' (' + image + ')')
     if(args.real):
         origin_col = cv2.imread(image)
+        if origin_col is None or origin_col.shape is None:
+            continue
         origin_read = cv2.cvtColor(origin_col, cv2.COLOR_BGR2YCrCb)[:,:,0]
         origin_read = cv2.normalize(origin_read.astype('float'), None, 
                                     #grayorigin.min()/255,
@@ -102,6 +104,9 @@ for image in imagelist:
         height, width = LR.shape
         heightgrid = np.linspace(0, height-1, height)
         widthgrid = np.linspace(0, width-1, width)
+        # print(widthgrid, heightgrid)
+        if len(widthgrid) == 1 or len(heightgrid) == 1:
+             continue
         bilinearinterp = interpolate.interp2d(widthgrid, heightgrid, LR, kind='linear')
         heightgrid = np.linspace(0, height-1, height*2-1)
         widthgrid = np.linspace(0, width-1, width*2-1)
